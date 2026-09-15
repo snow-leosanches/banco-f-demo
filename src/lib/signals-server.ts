@@ -1,36 +1,65 @@
 /**
- * Server-only helper for fetching Banco F's Signals context: the stream +
- * warehouse attribute groups (via the `benefits_agent_context_v1` service)
- * and the session-scoped agentic context narrative.
+ * Server-only Signals client. Used by the chat route (service + agentic
+ * context) and by the presenter Signals panel (per-identity attribute groups).
  *
  * Requires SIGNALS_API_ENDPOINT / SIGNALS_API_KEY / SIGNALS_API_KEY_ID /
- * SNOWPLOW_CONSOLE_ORG_ID env vars once the Console org is finalized. Until
- * then every call fails soft: the chat route falls back to catalog-only
- * grounding rather than throwing, so `npm run dev` works before Signals is
- * wired up for real.
+ * SNOWPLOW_CONSOLE_ORG_ID. Until those are set every call fails soft so
+ * `npm run dev` still works.
  */
 import { Signals } from '@snowplow/signals-node'
+import { SIGNALS_AGENTIC_CONTEXT_NAME, SIGNALS_SERVICE_NAME } from './signals-definitions'
+import { getSignalsEnv, signalsEnvDetails } from './signals-env'
 import { isGuid } from './user-id'
 
-const SERVICE_NAME = 'benefits_agent_context_v1'
-const AGENTIC_CONTEXT_NAME = 'benefits_assistant_context'
+export type SignalsInitResult =
+  | { success: true; signals: Signals }
+  | { success: false; error: string; details: Record<string, boolean> }
 
 let client: Signals | null | undefined
 
-function getClient(): Signals | null {
-  if (client !== undefined) return client
+export function getSignalsInstance(): SignalsInitResult {
+  const { baseUrl, apiKey, apiKeyId, organizationId, sandboxToken } = getSignalsEnv()
+  const details = signalsEnvDetails({ baseUrl, apiKey, apiKeyId, organizationId, sandboxToken })
 
-  const baseUrl = process.env.SIGNALS_API_ENDPOINT
-  const apiKey = process.env.SIGNALS_API_KEY
-  const apiKeyId = process.env.SIGNALS_API_KEY_ID
-  const organizationId = process.env.SNOWPLOW_CONSOLE_ORG_ID
-
-  if (!baseUrl || !apiKey || !apiKeyId || !organizationId || baseUrl.startsWith('[')) {
-    client = null
-    return client
+  if (!baseUrl || baseUrl.startsWith('[')) {
+    return {
+      success: false,
+      error: 'Missing SIGNALS_API_ENDPOINT environment variable',
+      details,
+    }
   }
 
-  client = new Signals({ baseUrl, apiKey, apiKeyId, organizationId })
+  try {
+    if (sandboxToken) {
+      return { success: true, signals: new Signals({ baseUrl, sandboxToken }) }
+    }
+
+    if (!apiKey || !apiKeyId || !organizationId) {
+      return {
+        success: false,
+        error: 'Missing required parameters for API key mode',
+        details,
+      }
+    }
+
+    return {
+      success: true,
+      signals: new Signals({ baseUrl, apiKey, apiKeyId, organizationId }),
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return {
+      success: false,
+      error: `Failed to initialize Snowplow Signals: ${message}`,
+      details,
+    }
+  }
+}
+
+function getClient(): Signals | null {
+  if (client !== undefined) return client
+  const result = getSignalsInstance()
+  client = result.success ? result.signals : null
   return client
 }
 
@@ -57,13 +86,13 @@ export async function getBenefitsSignalsContext(params: {
       .getServiceAttributes({
         attribute_key: 'customer_id',
         identifier: params.customerId,
-        name: SERVICE_NAME,
+        name: SIGNALS_SERVICE_NAME,
       })
       .catch(() => null),
     params.domainSessionId
       ? signals
           .getAgenticContext({
-            name: AGENTIC_CONTEXT_NAME,
+            name: SIGNALS_AGENTIC_CONTEXT_NAME,
             identifier: params.domainSessionId,
             format: 'narrative',
           })

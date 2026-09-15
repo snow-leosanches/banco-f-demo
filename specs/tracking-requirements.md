@@ -2,7 +2,7 @@
 
 Custom tracking needed beyond baseline (page views, pings, link clicks, consent, video). **Status: LIVE.** All 5 data structures below are published for real in Console org `b12539df-a711-42bd-bdfa-175308c55fd5` ("Snowplow Sales AWS"), vendor `com.bancofalabella`, via `snowplow-cli` — see `specs/data-structures/`. The app's `SCHEMA_VENDOR` in `src/lib/snowplow-config.ts` already matches.
 
-Signals objects (attribute group, agentic context, service, intervention) are also published for real — see `specs/signals-setup.py` and the Signals section below. The `.env` file has real Signals credentials wired in.
+Signals objects (attribute group, agentic context, service, intervention) are published through the TanStack API at `POST /api/signals/registry` — definitions live in `src/lib/signals-definitions.ts`. The `.env` file has real Signals credentials wired in.
 
 Remaining gap: the `customer_scores` warehouse attribute group (Bandit scores, CMR tier, comuna, recurring merchants) has no backing warehouse table yet — needs a synthetic BigQuery/Snowflake table before it can be created for real. Until then the app's local fallback (`assembleContext` in `src/lib/agent-prompt.ts`) supplies this data so the demo still works end to end.
 
@@ -68,10 +68,11 @@ Not yet wired into the ADK-equivalent chat route (`src/routes/api/chat.ts`). Per
 
 ## Signals configuration — LIVE in org b12539df / Sales AWS prod1
 
-Published via `specs/signals-setup.py` (Python SDK, run from `.signals-venv`):
+Published via `POST /api/signals/registry` (`src/lib/signals-definitions.ts` + `src/lib/signals-registry.ts`). Locally: `npm run dev` then `npm run signals:publish`. On Vercel, set `SIGNALS_PUBLISH_SECRET` and POST with `Authorization: Bearer <secret>`.
 
 - Custom attribute key `customer_id`, extracted from the `customer` entity's `customer_id` field — **published**
 - Stream attribute group `benefits_session_behavior`, key `customer_id`: `categories_viewed_last_30m`, `last_merchant_viewed`, `benefit_views_last_10m`, `travel_pages_last_10m` — **published**
+- Stream attribute group `benefits_anonymous_behavior`, same attributes keyed by `domain_userid` — **published**
 - Service `benefits_agent_context_v1` bundling `benefits_session_behavior` — **published**
 - Agentic context `benefits_assistant_context`, scoped to `domain_sessionid` (fixed by Signals — cannot key on `customer_id`), capturing `benefit_viewed` / `benefit_category_filtered` / `product_page_viewed`, 50 events / 30 min — **published**
 - Intervention `travel_intent_nudge`: `benefits_session_behavior:travel_pages_last_10m >= 3`, targeted to `customer_id` — **published**

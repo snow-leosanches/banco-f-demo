@@ -9,6 +9,7 @@ import { AssistantSidebar } from '@/components/AssistantSidebar'
 import { InterventionOrb } from '@/components/InterventionOrb'
 import { ConsentManager } from '@/components/ConsentManager'
 import { ChatFab } from '@/components/ChatFab'
+import { SignalsPanel } from '@/components/SignalsPanel'
 import { siteConfig } from '@/lib/config'
 
 export const Route = createRootRoute({
@@ -49,6 +50,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <AssistantSidebar />
             <InterventionOrb />
             <ChatFab />
+            <SignalsPanel />
             <ConsentManager />
           </AssistantProvider>
         </SnowplowInit>

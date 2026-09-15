@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CuentaRouteImport } from './routes/cuenta'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ApiAttributeGroupsRouteImport } from './routes/api/attribute-groups'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as BeneficiosIndexRouteImport } from './routes/beneficios/index'
 import { Route as BeneficiosBenefitIdRouteImport } from './routes/beneficios/$benefitId'
 import { Route as VideoIndexRouteImport } from './routes/video/index'
+import { Route as ApiSignalsRegistryRouteImport } from './routes/api/signals/registry'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -30,6 +32,11 @@ const CuentaRoute = CuentaRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAttributeGroupsRoute = ApiAttributeGroupsRouteImport.update({
+  id: '/api/attribute-groups',
+  path: '/api/attribute-groups',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
@@ -52,34 +59,45 @@ const VideoIndexRoute = VideoIndexRouteImport.update({
   path: '/video/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSignalsRegistryRoute = ApiSignalsRegistryRouteImport.update({
+  id: '/api/signals/registry',
+  path: '/api/signals/registry',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cuenta': typeof CuentaRoute
   '/login': typeof LoginRoute
+  '/api/attribute-groups': typeof ApiAttributeGroupsRoute
   '/api/chat': typeof ApiChatRoute
   '/beneficios/$benefitId': typeof BeneficiosBenefitIdRoute
   '/beneficios/': typeof BeneficiosIndexRoute
   '/video/': typeof VideoIndexRoute
+  '/api/signals/registry': typeof ApiSignalsRegistryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cuenta': typeof CuentaRoute
   '/login': typeof LoginRoute
+  '/api/attribute-groups': typeof ApiAttributeGroupsRoute
   '/api/chat': typeof ApiChatRoute
   '/beneficios/$benefitId': typeof BeneficiosBenefitIdRoute
   '/beneficios': typeof BeneficiosIndexRoute
   '/video': typeof VideoIndexRoute
+  '/api/signals/registry': typeof ApiSignalsRegistryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/cuenta': typeof CuentaRoute
   '/login': typeof LoginRoute
+  '/api/attribute-groups': typeof ApiAttributeGroupsRoute
   '/api/chat': typeof ApiChatRoute
   '/beneficios/$benefitId': typeof BeneficiosBenefitIdRoute
   '/beneficios/': typeof BeneficiosIndexRoute
   '/video/': typeof VideoIndexRoute
+  '/api/signals/registry': typeof ApiSignalsRegistryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,38 +105,46 @@ export interface FileRouteTypes {
     | '/'
     | '/cuenta'
     | '/login'
+    | '/api/attribute-groups'
     | '/api/chat'
     | '/beneficios/$benefitId'
     | '/beneficios/'
     | '/video/'
+    | '/api/signals/registry'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/cuenta'
     | '/login'
+    | '/api/attribute-groups'
     | '/api/chat'
     | '/beneficios/$benefitId'
     | '/beneficios'
     | '/video'
+    | '/api/signals/registry'
   id:
     | '__root__'
     | '/'
     | '/cuenta'
     | '/login'
+    | '/api/attribute-groups'
     | '/api/chat'
     | '/beneficios/$benefitId'
     | '/beneficios/'
     | '/video/'
+    | '/api/signals/registry'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CuentaRoute: typeof CuentaRoute
   LoginRoute: typeof LoginRoute
+  ApiAttributeGroupsRoute: typeof ApiAttributeGroupsRoute
   ApiChatRoute: typeof ApiChatRoute
   BeneficiosBenefitIdRoute: typeof BeneficiosBenefitIdRoute
   BeneficiosIndexRoute: typeof BeneficiosIndexRoute
   VideoIndexRoute: typeof VideoIndexRoute
+  ApiSignalsRegistryRoute: typeof ApiSignalsRegistryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -142,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/attribute-groups': {
+      id: '/api/attribute-groups'
+      path: '/api/attribute-groups'
+      fullPath: '/api/attribute-groups'
+      preLoaderRoute: typeof ApiAttributeGroupsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
@@ -172,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VideoIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/signals/registry': {
+      id: '/api/signals/registry'
+      path: '/api/signals/registry'
+      fullPath: '/api/signals/registry'
+      preLoaderRoute: typeof ApiSignalsRegistryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -179,10 +219,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CuentaRoute: CuentaRoute,
   LoginRoute: LoginRoute,
+  ApiAttributeGroupsRoute: ApiAttributeGroupsRoute,
   ApiChatRoute: ApiChatRoute,
   BeneficiosBenefitIdRoute: BeneficiosBenefitIdRoute,
   BeneficiosIndexRoute: BeneficiosIndexRoute,
   VideoIndexRoute: VideoIndexRoute,
+  ApiSignalsRegistryRoute: ApiSignalsRegistryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

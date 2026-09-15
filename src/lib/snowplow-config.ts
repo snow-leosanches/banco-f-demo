@@ -58,11 +58,12 @@ const SCHEMAS = {
 // ─── Tracker initialization ─────────────────────────────────────────────────
 
 let isInitialized = false
+let tracker: ReturnType<typeof newTracker>
 
 export function initializeSnowplow(): void {
   if (isInitialized || typeof window === 'undefined') return
 
-  newTracker(TRACKER_NAMESPACE, COLLECTOR_ENDPOINT, {
+  tracker = newTracker(TRACKER_NAMESPACE, COLLECTOR_ENDPOINT, {
     appId: siteConfig.brand.appId,
     appVersion: '1.0.0',
     cookieSameSite: 'Lax',
@@ -138,6 +139,16 @@ export function setUserForTracking(userId: string): void {
 
 export function clearUserForTracking(): void {
   setUserId(null)
+}
+
+/** First-party Snowplow domain user id — the Signals key for anonymous attributes. */
+export function getSnowplowDomainUserId(): string | null {
+  if (!tracker) return null
+  try {
+    return tracker.getDomainUserId() || null
+  } catch {
+    return null
+  }
 }
 
 // ─── Customer entity (attached to every event) ──────────────────────────────

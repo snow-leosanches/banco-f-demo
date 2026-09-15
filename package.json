@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",
-    "check": "prettier --check ."
+    "check": "prettier --check .",
+    "signals:publish": "curl -fsS -X POST http://localhost:3000/api/signals/registry"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.68",
