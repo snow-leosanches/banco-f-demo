@@ -1,0 +1,106 @@
+{
+  "demoName": "Banco F — Signals-Powered Benefits Assistant",
+  "appId": "demo-banco-falabella-web",
+  "focus": {
+    "type": "company",
+    "value": "Banco Falabella"
+  },
+  "story": "Real-time personalization. Banco Falabella's Benefits agent already exists but answers 'what benefits do I have this month?' the same way for everyone. This demo shows the same agent giving a materially better, personalized answer once Snowplow Signals feeds it real-time behavior (pages just browsed), synced predictive scores (Bandit ranking, CMR tier), and session memory — then proactively nudging the customer via an intervention before they even ask. The demo must open on the agent answering better, not on a pipeline diagram.",
+  "narrativeBeats": [
+    "Control: ask the benefits question with Signals off -> generic, unranked list",
+    "Treatment: browse Viajes category, view TurBus + Lipigas -> ask same question -> agent leads with travel/gas, cites Bandit rank + CMR tier, shows injected context narrative block",
+    "Proactive: keep browsing travel -> intervention fires -> in-flow orb nudge appears unprompted",
+    "Under the hood: Snowplow Console — attribute groups, warehouse sync, service, agentic context prompt edit -> republish -> live behavior change, no code deploy",
+    "Governance: Event Studio schema, BigQuery atomic.events + failed events, agent tool-calls landing as audit-trail events"
+  ],
+  "pages": [
+    {
+      "name": "Home",
+      "path": "/",
+      "description": "Banco F app home — account summary tiles, quick links to Mis Beneficios, Ahorro/Cuenta, and the persistent Asistente chat entry point. Includes the in-flow orb slot for proactive interventions.",
+      "functionality": "semi-functional",
+      "features": ["Account summary tiles", "Quick nav to benefits/account", "In-flow orb intervention slot", "Chat sidebar toggle"]
+    },
+    {
+      "name": "Mis Beneficios",
+      "path": "/beneficios",
+      "description": "Browse the ~250 benefit catalog with category filters. This is where the customer generates the behavioral signal the demo depends on.",
+      "functionality": "semi-functional",
+      "features": ["Category filter tabs: Restaurantes, Viajes, Combustible, Retail", "Benefit grid/list", "Click-through to benefit detail"]
+    },
+    {
+      "name": "Benefit detail",
+      "path": "/beneficios/:benefitId",
+      "description": "Single benefit page — merchant, discount, terms. Viewing this fires benefit_viewed.",
+      "functionality": "surface-level",
+      "features": ["Merchant name, category, discount badge", "Back to Mis Beneficios"]
+    },
+    {
+      "name": "Ahorro/Cuenta",
+      "path": "/cuenta",
+      "description": "Simple savings/account overview page — exists mainly to round out the app and fire product_page_viewed.",
+      "functionality": "surface-level",
+      "features": ["Account balance card", "Recent movements list (static)"]
+    },
+    {
+      "name": "Asistente (chat sidebar)",
+      "path": "component: persistent sidebar/drawer, not a route",
+      "description": "The Benefits agent chat. This is the centerpiece of the demo — must visibly show the injected Signals context narrative when Signals is toggled on, and support a visible Signals ON/OFF toggle for the control-vs-treatment beat.",
+      "functionality": "fully-functional",
+      "features": ["Chat UI (Spanish)", "Signals ON/OFF toggle for live A/B demo", "Injected context narrative block shown expandable under agent replies", "Streaming responses"]
+    }
+  ],
+  "designReference": {
+    "type": "url",
+    "value": "https://www.bancofalabella.cl/ (and https://www.falabella.com/ for CMR card branding)",
+    "notes": "Match real Banco Falabella / CMR visual identity (brand colors, type, benefit-card styling) — credibility with Esteban matters more than originality here. CMR tiers referenced: CMR Verde, CMR Lover, CMR Elite."
+  },
+  "imageApproach": "icons-placeholders",
+  "customTracking": {
+    "needed": true,
+    "areas": [
+      "entity: customer (customer_id, cmr_tier, comuna) attached to every event",
+      "event: benefit_viewed (benefit_id, merchant, category, discount_pct)",
+      "event: benefit_category_filtered (category)",
+      "event: product_page_viewed (product)",
+      "event: assistant_message_sent (channel, intent_guess) — tracked server-side to also model the WhatsApp channel",
+      "agent self-tracking: invocation / tool call / completion events for the audit-trail beat"
+    ]
+  },
+  "signalsConfig": {
+    "streamAttributeGroup": {
+      "name": "benefits_session_behavior",
+      "key": "customer_id",
+      "attributes": ["categories_viewed_last_30m", "last_merchant_viewed", "benefit_views_last_10m", "travel_pages_last_10m"]
+    },
+    "warehouseAttributeGroup": {
+      "name": "customer_scores",
+      "source": "synthetic/seeded BigQuery table standing in for Bandit + CRM",
+      "attributes": ["bandit_top_3", "cmr_tier", "home_comuna", "recurring_merchants"]
+    },
+    "agenticContext": {
+      "name": "benefits_assistant_context",
+      "captures": ["benefit_viewed", "benefit_category_filtered", "product_page_viewed"],
+      "window": "50 events / 30 min",
+      "prompt": "You are Banco Falabella's benefits assistant. Use recent activity to prioritize benefits the customer is actively exploring. Never invent benefits not in the catalog."
+    },
+    "service": {
+      "name": "benefits_agent_context_v1",
+      "bundles": ["benefits_session_behavior", "customer_scores"]
+    },
+    "intervention": {
+      "name": "travel_intent_nudge",
+      "rule": "travel_pages_last_10m >= 3",
+      "payload": "TurBus benefit",
+      "rendersAs": "in-flow orb nudge"
+    }
+  },
+  "agentStack": {
+    "base": "Signals + Google ADK + CopilotKit accelerator",
+    "pattern": "before_model_callback fetches Signals attributes/agentic context by session ID and injects into system instruction on every turn",
+    "modelProvider": "Gemini/Vertex (matches Banco Falabella's GCP stack)",
+    "frontend": "React"
+  },
+  "consoleStrategy": "real-console",
+  "snowplowBaseline": true
+}

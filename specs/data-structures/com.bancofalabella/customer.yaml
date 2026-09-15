@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/snowplow/snowplow-cli/refs/heads/main/internal/validation/schema/data-structure.json
+
+apiVersion: v1
+resourceType: data-structure
+meta:
+  hidden: false
+  schemaType: entity
+  customData: {}
+data:
+  $schema: http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#
+  self:
+    vendor: com.bancofalabella
+    name: customer
+    format: jsonschema
+    version: 1-0-0
+  type: object
+  description: The signed-in Banco F customer. Attached to every event as a global context so Signals can key attribute groups on customer_id.
+  properties:
+    customer_id:
+      description: Unique identifier for the customer (bank customer ID)
+      type: string
+      maxLength: 64
+    cmr_tier:
+      description: CMR card tier
+      type: string
+      enum:
+        - CMR Verde
+        - CMR Lover
+        - CMR Elite
+    comuna:
+      description: Customer's home comuna
+      type: string
+      maxLength: 128
+  required:
+    - customer_id
+    - cmr_tier
+    - comuna
+  additionalProperties: false

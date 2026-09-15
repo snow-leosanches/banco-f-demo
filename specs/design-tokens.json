@@ -1,0 +1,108 @@
+{
+  "colors": {
+    "primary": "#347B23",
+    "secondary": "#3B9326",
+    "accent": "#3B9326",
+    "highlight": "#007A33",
+    "background": "#FFFFFF",
+    "surface": "#FFFFFF",
+    "border": "#C9D4DF",
+    "text": {
+      "primary": "#44474B",
+      "secondary": "#585D61",
+      "inverse": "#FFFFFF",
+      "link": "#3B9326"
+    },
+    "status": {
+      "success": "#347B23",
+      "warning": "#8C6516",
+      "error": "#C0392B",
+      "info": "#3B7DBF"
+    },
+    "extras": {
+      "navDark": "#347B23",
+      "lime": "#C3D600",
+      "avocado": "#007A33",
+      "avocadoShadow": "#154734",
+      "wordmark": "#585D61",
+      "mint": "#EFF8EA",
+      "sectionGray": "#F4F7F9",
+      "iconTint": "#EFF8EA",
+      "infoPanel": "#F4F7F9",
+      "hazteBg": "rgba(59, 146, 38, 0.12)",
+      "alertBg": "#FFF4DF",
+      "alertText": "#8C6516",
+      "footerBg": "#262729",
+      "footerMuted": "#C9D4DF",
+      "cmrTierGold": "#B08D3E",
+      "cmrTierGreen": "#347B23",
+      "cmrTierBlack": "#1A1A1A"
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "heading": "'Figtree', 'Arial', sans-serif",
+      "body": "'Figtree', 'Arial', sans-serif",
+      "mono": "'IBM Plex Mono', monospace"
+    },
+    "fontSize": {
+      "h1": "2.5rem",
+      "h2": "2rem",
+      "h3": "1.25rem",
+      "h4": "1rem",
+      "h5": "0.875rem",
+      "body": "1rem",
+      "small": "0.875rem",
+      "nav": "0.875rem"
+    },
+    "fontWeight": {
+      "heading": "500",
+      "body": "450",
+      "bold": "600",
+      "light": "400"
+    },
+    "lineHeight": {
+      "heading": "1.4",
+      "body": "1.5",
+      "tight": "1.15"
+    },
+    "letterSpacing": {
+      "heading": "-0.02em",
+      "body": "0",
+      "wide": "0.125em"
+    }
+  },
+  "spacing": {
+    "xs": "0.25rem",
+    "sm": "0.5rem",
+    "md": "1rem",
+    "lg": "1.5rem",
+    "xl": "2.5rem",
+    "2xl": "4rem",
+    "section": "4rem",
+    "pageMaxWidth": "1248px"
+  },
+  "borderRadius": {
+    "sm": "0.5rem",
+    "md": "1rem",
+    "lg": "1.5rem",
+    "full": "9999px"
+  },
+  "shadows": {
+    "sm": "0 1px 1px rgba(0, 51, 102, 0.05), 0 3px 6px rgba(0, 51, 102, 0.05)",
+    "md": "0 1px 1px rgba(0, 0, 0, 0.05), 0 9px 18px rgba(0, 0, 0, 0.05)",
+    "lg": "0 12px 32px rgba(23, 23, 23, 0.12)"
+  },
+  "componentPatterns": {
+    "nav": "Three-tier sticky header extracted 2026-09-15 from bancofalabella.cl at 1440px. 1) 40px utility bar #347B23: Personas (active, rgba(255,255,255,0.4) chip) + Empresa left; Falabella/Viajes/Seguros/Sodimac/Tottus/Educación Financiera right, 13px/500, white at 75% opacity. 2) 72px white middle bar: palta logo + stacked Banco/Falabella wordmark left; Buscar outline pill (green text #3B9326, 1px rgba(27,48,82,0.3) border, 40px, radius 512px) + Hazte cliente (bg rgba(59,146,38,0.12), text #347B23) + Mi Cuenta (filled #3B9326) right. 3) White text nav, 14px/600, color #585D61, 55px row, centered items: Tarjetas CMR, Cuentas, Créditos, Avance y Súper Avance, Beneficios y Fpuntos, Inversiones, Seguros, Ayuda y Contacto. Mega menus on hover.",
+    "cards": "White surface, 24px radius, shadow 0 3px 6px / 0 1px 1px rgba(0,51,102,0.05). Opening/Gennial cards: padding 36px 24px, 12px internal gap, CSS credit-card mockup left of copy, 56px/256px green pill CTA. Benefit promo cards: 395×456, 16px radius, photographic/gradient overlay, large 'Hasta N% dcto' + 'Sin Tope'. Product cards (if used): 292×456, 24px radius.",
+    "buttons": {
+      "primary": "Fully rounded pill (radius 128px), background #3B9326, white text, 16px/450, height 56px, padding 16px, min-width ~256px on marketing CTAs. Header pills are 40px tall, 14px/500.",
+      "secondary": "Fully rounded pill, background rgba(59,146,38,0.12), text #347B23, 1.5px matching border. Search uses transparent bg + 1px rgba(27,48,82,0.3) border and green text.",
+      "text": "No background, green #3B9326 text"
+    },
+    "grid": "Homepage opening cards: two-up, 32px gap, max 546px each. Benefit promo row: 3 columns ~395px. Inner catalog: 3-column card grid collapsing to 1 on mobile. Content max-width 1248px with 96px page gutters at 1440px.",
+    "hero": "Full-bleed white section, padding 32px 96px. Large 1248×460 banner, 24px radius, image/gradient with left text overlay (40px/500/-0.8px tracking, white). Green 56px pill CTA. Dot pagination (active lime). Separate mint (#EFF8EA) credit-simulator strip: 32px headline left, 328px RUT input (8px radius, #C9D4DF border, 54px) + matching-width green pill right.",
+    "footer": "Charcoal #262729. Three columns: NUESTRO BANCO / SERVICIO AL CLIENTE / LINK DE INTERES. Column titles 16px/450, letter-spacing 2px, uppercase, #C9D4DF. Links 14px/450 white. Legal CMF disclaimer at bottom in muted gray. Demo-management controls sit in a thinner bar under the legal row."
+  }
+}

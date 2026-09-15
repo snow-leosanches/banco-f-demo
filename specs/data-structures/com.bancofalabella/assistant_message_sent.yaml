@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/snowplow/snowplow-cli/refs/heads/main/internal/validation/schema/data-structure.json
+
+apiVersion: v1
+resourceType: data-structure
+meta:
+  hidden: false
+  schemaType: event
+  customData: {}
+data:
+  $schema: http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#
+  self:
+    vendor: com.bancofalabella
+    name: assistant_message_sent
+    format: jsonschema
+    version: 1-0-0
+  type: object
+  description: Fired when the customer sends a message to the Benefits assistant, from any channel (app or WhatsApp).
+  properties:
+    channel:
+      description: Channel the message was sent from
+      type: string
+      enum:
+        - app
+        - whatsapp
+    intent_guess:
+      description: Lightweight classification of the message intent
+      type: string
+      maxLength: 64
+  required:
+    - channel
+    - intent_guess
+  additionalProperties: false

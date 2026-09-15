@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/snowplow/snowplow-cli/refs/heads/main/internal/validation/schema/data-structure.json
+
+apiVersion: v1
+resourceType: data-structure
+meta:
+  hidden: false
+  schemaType: event
+  customData: {}
+data:
+  $schema: http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#
+  self:
+    vendor: com.bancofalabella
+    name: product_page_viewed
+    format: jsonschema
+    version: 1-0-0
+  type: object
+  description: Fired when the customer views a banking product page (account, savings, etc).
+  properties:
+    product:
+      description: Product identifier
+      type: string
+      maxLength: 64
+  required:
+    - product
+  additionalProperties: false

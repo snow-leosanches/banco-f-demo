@@ -1,0 +1,38 @@
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
+
+@theme {
+  --font-heading: 'Figtree', Arial, sans-serif;
+  --font-body: 'Figtree', Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Figtree', Arial, sans-serif;
+  font-weight: 450;
+  background-color: #ffffff;
+  color: #44474b;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Figtree', Arial, sans-serif;
+}
+
+button,
+a {
+  font-family: inherit;
+}
