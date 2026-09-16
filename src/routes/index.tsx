@@ -224,7 +224,9 @@ function Home() {
             <h2 className="font-heading text-h2 text-white">¡Un Elite complementa su viaje!</h2>
             <p className="mt-3 text-body text-white/90">
               Aprovecha este beneficio exclusivo
-              {customer ? ` por ser cliente ${customer.cmrTier}` : ' con tu tarjeta CMR'} en destinos y pasajes
+              {customer?.cmrTier
+                ? ` por ser cliente ${customer.cmrTier}`
+                : ' con tu tarjeta CMR'} en destinos y pasajes
               seleccionados.
             </p>
             <Link

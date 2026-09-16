@@ -29,17 +29,25 @@ import {
 } from '@snowplow/browser-plugin-enhanced-consent'
 import { SnowplowMediaPlugin } from '@snowplow/browser-plugin-media'
 import { YouTubeTrackingPlugin, startYouTubeTracking, endYouTubeTracking } from '@snowplow/browser-plugin-youtube-tracking'
-import { SignalsPlugin, subscribeToInterventions } from '@snowplow/signals-browser-plugin'
+import {
+  SignalsPlugin,
+  addInterventionHandlers,
+  subscribeToInterventions,
+  type Intervention,
+} from '@snowplow/signals-browser-plugin'
 
 import { siteConfig, type Customer, type BenefitCategory } from './config'
 import { getConsentPreferences, isSignalsEnabled } from './consent'
+import {
+  flattenInterventionAttributes,
+  recordInterventionTrigger,
+} from './intervention-log'
 import { isGuid } from './user-id'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const COLLECTOR_ENDPOINT = 'https://com-snplow-sales-aws-prod1.collector.snplow.net'
 const TRACKER_NAMESPACE = 'sp1'
-// Sales AWS prod1 Signals API (org b12539df) — travel_intent_nudge is published here
 const SIGNALS_ENDPOINT = 'https://7f9742b834d7.signals.snowplowanalytics.com'
 
 const SCHEMA_VENDOR = 'com.bancofalabella'
@@ -91,22 +99,19 @@ export function initializeSnowplow(): void {
     enableAnonymousMode()
   }
 
-  if (siteConfig.features.signals && isSignalsEnabled()) {
-    // travel_intent_nudge targets the customer_id attribute key (not the
-    // plugin's domain_userid/domain_sessionid defaults), extracted from the
-    // customer entity attached via addGlobalContexts. JSON pointer path
-    // format for custom entities is best-effort — verify in Console's
-    // intervention test tool before the live demo; the client-side behavior
-    // counter in assistant-context.tsx is the reliability fallback for the
-    // orb regardless of whether this wiring resolves correctly.
-    subscribeToInterventions({
-      endpoint: SIGNALS_ENDPOINT,
-      // Defaults only track domain_userid/domain_sessionid. travel_intent_nudge
-      // is keyed by customer_id from the customer entity, which only appears
-      // once setCustomerContext() has been called on login.
-      attributeKeyTargets: INTERVENTION_ATTRIBUTE_KEY_TARGETS,
-    })
-  }
+  addInterventionHandlers({
+    signalsPanel(intervention: Intervention) {
+      recordInterventionTrigger({
+        name: intervention.name,
+        version: intervention.version,
+        source: 'signals',
+        interventionId: intervention.intervention_id,
+        targetKey: intervention.target_attribute_key?.name,
+        targetId: intervention.target_attribute_key?.id,
+        attributes: flattenInterventionAttributes(intervention.attributes),
+      })
+    },
+  })
 
   isInitialized = true
 }
@@ -168,7 +173,7 @@ export function setCustomerContext(customer: Customer): void {
       schema: SCHEMAS.customer,
       data: {
         customer_id: customer.customerId,
-        cmr_tier: customer.cmrTier,
+        ...(customer.cmrTier ? { cmr_tier: customer.cmrTier } : {}),
         comuna: customer.comuna,
       },
     },
@@ -177,9 +182,8 @@ export function setCustomerContext(customer: Customer): void {
 }
 
 /**
- * Pushes customer_id into the open interventions subscription immediately,
- * rather than waiting for whatever tracked event happens to fire next after
- * login (the fetcher's default behaviour picks it up from event payloads).
+ * Pushes customer_id into the interventions subscription on login.
+ * banco_falabella_travel_intent_nudge is exclusive to identified customers.
  */
 function updateInterventionIdentity(customerId: string): void {
   if (!siteConfig.features.signals || !isSignalsEnabled() || !isGuid(customerId)) return

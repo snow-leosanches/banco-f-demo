@@ -6,8 +6,9 @@ import { CAMILA_USER_ID, DIEGO_USER_ID, VALENTINA_USER_ID } from './user-id'
  * (`benefits`) stays complete so browsing still generates Signals events;
  * the agent only sees this slice via tools.
  *
- * Diego (CMR Verde) — fewest. No Viajes, so travel browsing cannot produce
- * a TurBus recommendation from the agent.
+ * Diego — no CMR card, fewest entitlements. No Viajes, so travel browsing
+ * cannot produce a TurBus recommendation from the agent; the travel nudge
+ * offers CMR signup instead.
  * Camila (CMR Lover) — the deck's example: Bandit top-3 + Shell/Tottus.
  * Valentina (CMR Elite) — full catalog.
  * Anyone else (guest, manual, random) — same as Diego.

@@ -1,8 +1,15 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { getDomainSessionId } from '@snowplow/browser-tracker'
 
 import type { BenefitCategory } from '@/lib/config'
 import { isSignalsEnabled } from '@/lib/consent'
+import {
+  clearInterventionTriggers,
+  getInterventionTriggers,
+  recordInterventionTrigger,
+  subscribeInterventionTriggers,
+} from '@/lib/intervention-log'
+import { SIGNALS_INTERVENTION_NAME } from '@/lib/signals-definitions'
 import { useUser } from '@/contexts/user-context'
 
 const CTX_START = '__CTX__'
@@ -50,19 +57,55 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const behaviorRef = useRef<BehaviorEvent[]>([])
   const orbShownRef = useRef(false)
 
-  const recordBenefitView = useCallback((category: BenefitCategory, merchant: string = '(catálogo)') => {
-    behaviorRef.current.push({ category, merchant, at: Date.now() })
-
-    if (category === 'Viajes' && isSignalsEnabled() && !orbShownRef.current) {
-      const recentTravel = behaviorRef.current.filter(
-        (e) => e.category === 'Viajes' && Date.now() - e.at <= TEN_MINUTES_MS,
-      )
-      if (recentTravel.length >= TRAVEL_NUDGE_THRESHOLD) {
-        orbShownRef.current = true
-        setOrbVisible(true)
-      }
+  const customerId = customer?.customerId ?? null
+  const maybeShowTravelOrb = useCallback(() => {
+    if (!customerId || !isSignalsEnabled() || orbShownRef.current) return
+    const recentTravel = behaviorRef.current.filter(
+      (e) => e.category === 'Viajes' && Date.now() - e.at <= TEN_MINUTES_MS,
+    )
+    if (recentTravel.length >= TRAVEL_NUDGE_THRESHOLD) {
+      orbShownRef.current = true
+      setOrbVisible(true)
+      recordInterventionTrigger({
+        name: SIGNALS_INTERVENTION_NAME,
+        version: 1,
+        source: 'local-fallback',
+      })
     }
-  }, [])
+  }, [customerId])
+
+  const recordBenefitView = useCallback(
+    (category: BenefitCategory, merchant: string = '(catálogo)') => {
+      behaviorRef.current.push({ category, merchant, at: Date.now() })
+      if (category === 'Viajes') maybeShowTravelOrb()
+    },
+    [maybeShowTravelOrb],
+  )
+
+  const lastCustomerIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    const id = customerId
+    if (id !== lastCustomerIdRef.current) {
+      lastCustomerIdRef.current = id
+      orbShownRef.current = false
+      setOrbVisible(false)
+      clearInterventionTriggers()
+    }
+    if (!customerId) return
+    maybeShowTravelOrb()
+  }, [customerId, maybeShowTravelOrb])
+
+  useEffect(() => {
+    return subscribeInterventionTriggers(() => {
+      if (!customerId || !isSignalsEnabled() || orbShownRef.current) return
+      const delivered = getInterventionTriggers().some(
+        (trigger) => trigger.source === 'signals' && trigger.name === SIGNALS_INTERVENTION_NAME,
+      )
+      if (!delivered) return
+      orbShownRef.current = true
+      setOrbVisible(true)
+    })
+  }, [customerId])
 
   const dismissOrb = useCallback(() => setOrbVisible(false), [])
 

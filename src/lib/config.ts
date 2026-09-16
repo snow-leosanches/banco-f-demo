@@ -335,8 +335,12 @@ export type CmrTier = 'CMR Verde' | 'CMR Lover' | 'CMR Elite'
 export interface Customer {
   customerId: string
   firstName: string
-  cmrTier: CmrTier
+  cmrTier: CmrTier | null
   comuna: string
+}
+
+export function customerHasCmrCard(customer: Customer | null | undefined): boolean {
+  return customer?.cmrTier != null
 }
 
 export const currentCustomer: Customer = {

@@ -32,7 +32,10 @@ export const Route = createFileRoute('/api/signals/registry')({
 
         try {
           const published = await publishSignalsRegistry()
-          const ok = published.length > 0 && published.every((step) => step.ok)
+          const requiredOk = published
+            .filter((step) => !step.type.endsWith('_delete'))
+            .every((step) => step.ok)
+          const ok = published.length > 0 && requiredOk
           return Response.json(
             { ok, published, diagnostic: signalsEnvDetails(getSignalsEnv()) },
             { status: ok ? 200 : 500 },

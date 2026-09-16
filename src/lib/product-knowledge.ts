@@ -31,7 +31,7 @@ export const KNOWLEDGE_ARTICLES: KnowledgeArticle[] = [
     summary:
       'CMR es la tarjeta de Banco F / Falabella. Con ella pagas en el ecosistema (Falabella, Tottus, Sodimac, comercios adheridos) y accedes al programa de beneficios.',
     details: [
-      'En esta demo hay tres tramos: CMR Verde, CMR Lover y CMR Elite.',
+      'En esta demo, Camila es CMR Lover, Valentina es CMR Elite y Diego aún no tiene tarjeta CMR.',
       'El tramo cambia qué descuentos están vigentes para el cliente (el Asistente lo consulta con listMyBenefits).',
     ],
   },

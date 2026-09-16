@@ -69,7 +69,7 @@
   },
   "signalsConfig": {
     "streamAttributeGroup": {
-      "name": "benefits_session_behavior",
+      "name": "banco_falabella_customer_id_attributes",
       "key": "customer_id",
       "attributes": ["categories_viewed_last_30m", "last_merchant_viewed", "benefit_views_last_10m", "travel_pages_last_10m"]
     },
@@ -86,10 +86,10 @@
     },
     "service": {
       "name": "benefits_agent_context_v1",
-      "bundles": ["benefits_session_behavior", "customer_scores"]
+      "bundles": ["banco_falabella_customer_id_attributes", "customer_scores"]
     },
     "intervention": {
-      "name": "travel_intent_nudge",
+      "name": "banco_falabella_travel_intent_nudge",
       "rule": "travel_pages_last_10m >= 3",
       "payload": "TurBus benefit",
       "rendersAs": "in-flow orb nudge"

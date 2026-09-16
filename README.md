@@ -27,9 +27,9 @@ Use **Clientes conocidos** on `/login`. The marketing catalog on `/beneficios` s
 
 | Login | CMR | Entitled benefits | “¿Por qué ahorro menos este mes?” |
 | --- | --- | --- | --- |
-| **Diego Soto** | Verde | Copec, Burger King, Tottus (no Viajes) | Salary drop: $920.000 in jul/ago → **$680.000** in sep. Spend is flat. |
-| **Camila Rojas** | Lover | TurBus, Lipigas, Dunkin, Shell, Tottus | Same $780.000 salary. Spend jumps **$628.000 → $1.048.000** (playa + asado). |
-| **Valentina Pérez** | Elite | Full catalog (12 benefits) | She switched CMR from cash discount to Fpuntos on 4 sep. Spend is flat; cash savings drop. |
+| **Diego Soto** | Sin CMR | Copec, Burger King, Tottus (no Viajes). Travel nudge offers CMR signup. | Salary drop: $920.000 in jul/ago → **$680.000** in sep. Spend is flat. |
+| **Camila Rojas** | Lover | TurBus, Lipigas, Dunkin, Shell, Tottus. Travel nudge cites the CMR TurBus discount. | Same $780.000 salary. Spend jumps **$628.000 → $1.048.000** (playa + asado). |
+| **Valentina Pérez** | Elite | Full catalog (12 benefits). Travel nudge cites the CMR TurBus discount. | She switched CMR from cash discount to Fpuntos on 4 sep. Spend is flat; cash savings drop. |
 
 Guest, manual, and random logins reuse Diego's entitlements and savings snapshot.
 
@@ -72,6 +72,6 @@ Run it only when the registry definitions change (or the first time you point th
 1. Start the app (`npm run dev`)
 2. `npm run signals:publish`
 
-Definitions live in `src/lib/signals-definitions.ts`. The command POSTs to `/api/signals/registry` on the running app. Re-running it is safe: objects that already exist in Console are skipped.
+Definitions live in `src/lib/signals-definitions.ts`. Attribute groups are `banco_falabella_customer_id_attributes` (key `customer_id`) and `banco_falabella_domain_userid_attributes` (key `domain_userid`). The travel intervention is `banco_falabella_travel_intent_nudge` (logged-in / `customer_id` only). The command POSTs to `/api/signals/registry` on the running app. Re-running it is safe: objects that already exist in Console are updated or skipped. The first publish after a rename also unpublishes and deletes retired names (`benefits_session_behavior`, `benefits_anonymous_behavior`, `travel_intent_nudge`).
 
 On Vercel, set `SIGNALS_PUBLISH_SECRET` and POST with `Authorization: Bearer <secret>`. Production rejects publish requests without that secret.

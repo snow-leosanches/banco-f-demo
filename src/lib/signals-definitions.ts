@@ -11,7 +11,7 @@ export const SIGNALS_OWNER = 'leonel.sanches@snowplowanalytics.com'
 export const SIGNALS_VENDOR = 'com.bancofalabella'
 export const SIGNALS_SERVICE_NAME = 'benefits_agent_context_v1'
 export const SIGNALS_AGENTIC_CONTEXT_NAME = 'benefits_assistant_context'
-export const SIGNALS_INTERVENTION_NAME = 'travel_intent_nudge'
+export const SIGNALS_INTERVENTION_NAME = 'banco_falabella_travel_intent_nudge'
 
 const EVENT_VERSION = '1-0-0'
 
@@ -89,7 +89,7 @@ const sessionBehaviorAttributes = [
       ],
     },
     description:
-      'Count of Viajes-category benefit views in the last 10 minutes — drives the travel_intent_nudge intervention',
+      'Count of Viajes-category benefit views in the last 10 minutes — drives the banco_falabella_travel_intent_nudge intervention',
     events: [schemaEvent('benefit_viewed')],
     name: 'travel_pages_last_10m',
     period: 'PT10M',
@@ -98,10 +98,10 @@ const sessionBehaviorAttributes = [
   },
 ] as const
 
-export const benefitsSessionBehavior = {
+export const customerIdAttributesGroup = {
   attribute_key: { name: 'customer_id' },
   attributes: sessionBehaviorAttributes,
-  description: 'Real-time benefits-browsing behavior for the Banco F Signals POC',
+  description: 'Real-time benefits-browsing behavior for the Banco F Signals POC, keyed by customer_id',
   is_published: true,
   name: IDENTIFIED_ATTRIBUTE_GROUP.name,
   offline: false,
@@ -110,11 +110,11 @@ export const benefitsSessionBehavior = {
   version: IDENTIFIED_ATTRIBUTE_GROUP.version,
 }
 
-export const benefitsAnonymousBehavior = {
+export const domainUseridAttributesGroup = {
   attribute_key: { name: 'domain_userid' },
   attributes: sessionBehaviorAttributes,
   description:
-    'Same session-behavior calculations as benefits_session_behavior, keyed by domain_userid so attributes calculate for anonymous visitors',
+    'Same session-behavior calculations as banco_falabella_customer_id_attributes, keyed by domain_userid so attributes calculate for anonymous visitors',
   is_published: true,
   name: ANONYMOUS_ATTRIBUTE_GROUP.name,
   offline: false,
@@ -176,7 +176,7 @@ export const travelIntentNudge = {
     value: 3,
   },
   description:
-    'Fires when a customer views 3+ Viajes benefits in 10 minutes — surfaces the TurBus offer as an in-flow nudge',
+    'Logged-in only (customer_id). Fires after 3+ Viajes benefit views in 10 minutes. Orb copy is CMR vs sign-up depending on whether the login has a card.',
   is_published: true,
   name: SIGNALS_INTERVENTION_NAME,
   owner: SIGNALS_OWNER,
@@ -184,18 +184,25 @@ export const travelIntentNudge = {
   version: 1,
 }
 
+export const RETIRED_ATTRIBUTE_GROUPS = [
+  { name: 'benefits_session_behavior', version: 1 },
+  { name: 'benefits_anonymous_behavior', version: 1 },
+] as const
+
+export const RETIRED_INTERVENTIONS = [{ name: 'travel_intent_nudge', version: 1 }] as const
+
 export const signalsRegistryCatalog = [
   { type: 'attribute_key', name: customerIdKey.name, version: null },
   {
     type: 'attribute_group',
-    name: benefitsSessionBehavior.name,
-    version: benefitsSessionBehavior.version,
+    name: customerIdAttributesGroup.name,
+    version: customerIdAttributesGroup.version,
     attributeKey: 'customer_id',
   },
   {
     type: 'attribute_group',
-    name: benefitsAnonymousBehavior.name,
-    version: benefitsAnonymousBehavior.version,
+    name: domainUseridAttributesGroup.name,
+    version: domainUseridAttributesGroup.version,
     attributeKey: 'domain_userid',
   },
   { type: 'event_log', name: benefitsAssistantContext.name, version: benefitsAssistantContext.version },

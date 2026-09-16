@@ -71,11 +71,11 @@ Not yet wired into the ADK-equivalent chat route (`src/routes/api/chat.ts`). Per
 Published via `POST /api/signals/registry` (`src/lib/signals-definitions.ts` + `src/lib/signals-registry.ts`). Locally: `npm run dev` then `npm run signals:publish`. On Vercel, set `SIGNALS_PUBLISH_SECRET` and POST with `Authorization: Bearer <secret>`.
 
 - Custom attribute key `customer_id`, extracted from the `customer` entity's `customer_id` field — **published**
-- Stream attribute group `benefits_session_behavior`, key `customer_id`: `categories_viewed_last_30m`, `last_merchant_viewed`, `benefit_views_last_10m`, `travel_pages_last_10m` — **published**
-- Stream attribute group `benefits_anonymous_behavior`, same attributes keyed by `domain_userid` — **published**
-- Service `benefits_agent_context_v1` bundling `benefits_session_behavior` — **published**
+- Stream attribute group `banco_falabella_customer_id_attributes`, key `customer_id`: `categories_viewed_last_30m`, `last_merchant_viewed`, `benefit_views_last_10m`, `travel_pages_last_10m` — **published**
+- Stream attribute group `banco_falabella_domain_userid_attributes`, same attributes keyed by `domain_userid` — **published**
+- Service `benefits_agent_context_v1` bundling `banco_falabella_customer_id_attributes` — **published**
 - Agentic context `benefits_assistant_context`, scoped to `domain_sessionid` (fixed by Signals — cannot key on `customer_id`), capturing `benefit_viewed` / `benefit_category_filtered` / `product_page_viewed`, 50 events / 30 min — **published**
-- Intervention `travel_intent_nudge`: `benefits_session_behavior:travel_pages_last_10m >= 3`, targeted to `customer_id` — **published**
+- Intervention `banco_falabella_travel_intent_nudge`: `banco_falabella_customer_id_attributes:travel_pages_last_10m >= 3`, targeted to `customer_id` (logged-in only) — **published**
 - Warehouse attribute group `customer_scores` (`bandit_top_3`, `cmr_tier`, `home_comuna`, `recurring_merchants`) — **not created**, needs a real BigQuery/Snowflake table first. Add it to `benefits_agent_context_v1`'s `attribute_groups` once that table exists.
 
 Verified live and responding (see conversation, 2026-09-11): `get_attribute_group`, `get_service_attributes`, and `get_agentic_context` all return correctly (empty values, since no real event traffic has flowed through this pipeline yet — that starts once the app is actually run against `com-snplow-sales-aws-prod1.collector.snplow.net`).

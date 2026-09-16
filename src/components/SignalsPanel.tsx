@@ -5,7 +5,10 @@ import { Activity, X } from 'lucide-react'
 
 import { isSignalsEnabled } from '@/lib/consent'
 import { siteConfig } from '@/lib/config'
+import { travelNudgeTriggers, type InterventionTrigger } from '@/lib/intervention-log'
 import { hasSessionBehavior, type SessionBehaviorAttributes } from '@/lib/signals-attributes'
+import { SIGNALS_INTERVENTION_NAME } from '@/lib/signals-definitions'
+import { useInterventionLog } from '@/hooks/use-intervention-log'
 import { useSignalsAttributes } from '@/hooks/use-signals-attributes'
 import { useUser } from '@/contexts/user-context'
 
@@ -94,6 +97,91 @@ function AttributeBlock({
   )
 }
 
+function formatTriggerTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+function triggerSourceLabel(source: InterventionTrigger['source']): string {
+  return source === 'signals' ? 'Signals' : 'client fallback'
+}
+
+function InterventionBlock({
+  isIdentified,
+  triggers,
+}: {
+  isIdentified: boolean
+  triggers: readonly InterventionTrigger[]
+}) {
+  const events = travelNudgeTriggers(triggers)
+  const fromSignals = events.some((event) => event.source === 'signals')
+  const fromFallback = events.some((event) => event.source === 'local-fallback')
+
+  let status = 'Not triggered'
+  let statusClass = 'bg-sectionGray text-text-secondary'
+  if (fromSignals) {
+    status = 'Triggered · Signals'
+    statusClass = 'bg-mint text-primary'
+  } else if (fromFallback) {
+    status = 'Triggered · client fallback'
+    statusClass = 'bg-hazteBg text-primary'
+  } else if (!isIdentified) {
+    status = 'Not subscribed'
+  }
+
+  return (
+    <section>
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Intervention</h4>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClass}`}>{status}</span>
+      </div>
+      <p className="mb-1 font-mono text-[11px] text-text-secondary">{SIGNALS_INTERVENTION_NAME}</p>
+      <p className="mb-3 text-[11px] leading-relaxed text-text-secondary">
+        <span className="font-mono">travel_pages_last_10m &gt;= 3</span> on{' '}
+        <span className="font-mono">customer_id</span>. Logged-in only.
+      </p>
+
+      {!isIdentified ? (
+        <p className="rounded-md bg-sectionGray px-3 py-2 text-xs text-text-secondary">
+          Log in to subscribe. The plugin only requests this intervention after a customer_id is set.
+        </p>
+      ) : events.length === 0 ? (
+        <p className="text-[11px] text-text-secondary">
+          Subscribed. View 3 Viajes benefits in 10 minutes to trigger. The orb can fire from Signals or
+          the local counter.
+        </p>
+      ) : (
+        <ol className="space-y-2">
+          {events.map((event, index) => (
+            <li key={`${event.source}-${event.receivedAt}-${index}`} className="rounded-md bg-sectionGray px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-text">{triggerSourceLabel(event.source)}</span>
+                <span className="font-mono text-[10px] text-text-secondary">{formatTriggerTime(event.receivedAt)}</span>
+              </div>
+              {event.interventionId && (
+                <p className="mt-1 font-mono text-[10px] text-text-secondary">id {shortenId(event.interventionId)}</p>
+              )}
+              {event.targetId && (
+                <p className="mt-0.5 font-mono text-[10px] text-text-secondary">
+                  {event.targetKey ?? 'customer_id'} {shortenId(event.targetId)}
+                </p>
+              )}
+              {typeof event.attributes?.travel_pages_last_10m === 'number' && (
+                <p className="mt-0.5 text-[10px] text-text-secondary">
+                  travel_pages_last_10m = {event.attributes.travel_pages_last_10m}
+                </p>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  )
+}
+
 export function SignalsPanel() {
   const [isOpen, setIsOpen] = useState(false)
   const [signalsOn, setSignalsOn] = useState(true)
@@ -103,6 +191,7 @@ export function SignalsPanel() {
       enabled: isOpen,
       refetchInterval: isOpen ? POLL_MS : false,
     })
+  const interventionTriggers = useInterventionLog()
 
   useEffect(() => {
     setSignalsOn(isSignalsEnabled())
@@ -150,44 +239,52 @@ export function SignalsPanel() {
               <p className="py-6 text-center text-text-secondary">
                 Signals is turned off. Enable it from the demo footer to fetch attributes.
               </p>
-            ) : isLoading ? (
-              <div className="animate-pulse space-y-4">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="h-3 w-1/3 rounded-sm bg-border" />
-                    <div className="h-4 w-2/3 rounded-sm bg-border/70" />
-                  </div>
-                ))}
-              </div>
-            ) : error ? (
-              <p className="py-6 text-center text-xs text-status-error">{error}</p>
             ) : (
               <>
-                <div className="flex items-center justify-between rounded-md bg-mint px-3 py-2">
-                  <span className="text-xs font-medium text-primary">Current identity</span>
-                  <span className="text-xs font-semibold text-text">{identityLabel}</span>
-                </div>
+                {isLoading ? (
+                  <div className="animate-pulse space-y-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="space-y-2">
+                        <div className="h-3 w-1/3 rounded-sm bg-border" />
+                        <div className="h-4 w-2/3 rounded-sm bg-border/70" />
+                      </div>
+                    ))}
+                  </div>
+                ) : error ? (
+                  <p className="py-6 text-center text-xs text-status-error">{error}</p>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between rounded-md bg-mint px-3 py-2">
+                      <span className="text-xs font-medium text-primary">Current identity</span>
+                      <span className="text-xs font-semibold text-text">{identityLabel}</span>
+                    </div>
 
-                <AttributeBlock
-                  title="Anonymous"
-                  keyLabel="domain_userid"
-                  identifier={domainUserId}
-                  helper="Calculated from the first-party cookie. Browse before login and these values still update."
-                  attributes={anonymous}
-                  emptyHint="Open benefits and filter categories — anonymous attributes will appear here."
-                />
+                    <AttributeBlock
+                      title="Anonymous"
+                      keyLabel="domain_userid"
+                      identifier={domainUserId}
+                      helper="Calculated from the first-party cookie. Browse before login and these values still update."
+                      attributes={anonymous}
+                      emptyHint="Open benefits and filter categories — anonymous attributes will appear here."
+                    />
+
+                    <hr className="border-border" />
+
+                    <AttributeBlock
+                      title="Identified"
+                      keyLabel="customer_id"
+                      identifier={customerId}
+                      helper="Calculated from the customer entity attached after login. Pre-login browsing does not land here."
+                      attributes={identified}
+                      emptyHint="View benefits while signed in — identified attributes start from those events."
+                      locked={!isIdentified}
+                    />
+                  </>
+                )}
 
                 <hr className="border-border" />
 
-                <AttributeBlock
-                  title="Identified"
-                  keyLabel="customer_id"
-                  identifier={customerId}
-                  helper="Calculated from the customer entity attached after login. Pre-login browsing does not land here."
-                  attributes={identified}
-                  emptyHint="View benefits while signed in — identified attributes start from those events."
-                  locked={!isIdentified}
-                />
+                <InterventionBlock isIdentified={isIdentified} triggers={interventionTriggers} />
               </>
             )}
 

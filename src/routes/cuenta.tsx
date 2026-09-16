@@ -73,7 +73,9 @@ function Cuenta() {
       <div className="mx-auto max-w-page px-6 py-10 lg:px-24">
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-[24px] bg-surface p-8 shadow-sm">
-            <span className="text-small font-medium text-text-secondary">Cuenta Corriente · {customer.cmrTier}</span>
+            <span className="text-small font-medium text-text-secondary">
+              Cuenta Corriente{customer.cmrTier ? ` · ${customer.cmrTier}` : ''}
+            </span>
             <p className="mt-2 font-heading text-h1 text-text">$1.240.500</p>
             <p className="mt-1 text-small text-text-secondary">Disponible hoy · {customer.comuna}</p>
             <div className="mt-6 flex flex-wrap gap-3">

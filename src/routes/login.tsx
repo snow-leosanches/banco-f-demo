@@ -51,7 +51,6 @@ function LoginPage() {
       userId,
       firstName: email.split('@')[0] || 'Cliente',
       customerId: userId,
-      cmrTier: 'CMR Verde',
       comuna: 'Santiago',
     })
   }
@@ -163,7 +162,7 @@ function LoginPage() {
               onClick={() => performKnownCustomerLogin(customer)}
               className="rounded-full bg-secondary px-4 py-2.5 text-left text-small font-medium text-white hover:bg-highlight"
             >
-              {customer.name} · {customer.cmrTier} · {customer.benefitsLabel} · {customer.savingsLabel}
+              {customer.name} · {customer.cmrTier ?? 'Sin CMR'} · {customer.benefitsLabel} · {customer.savingsLabel}
             </button>
           ))}
         </div>

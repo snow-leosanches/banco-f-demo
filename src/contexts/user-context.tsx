@@ -14,7 +14,7 @@ export interface DemoUser {
   phone?: string
   firstName?: string
   customerId?: string
-  cmrTier?: CmrTier
+  cmrTier?: CmrTier | null
   comuna?: string
 }
 
@@ -25,7 +25,7 @@ export type LoginDetails = {
   phone?: string
   firstName?: string
   customerId: string
-  cmrTier?: CmrTier
+  cmrTier?: CmrTier | null
   comuna?: string
 }
 
@@ -49,11 +49,11 @@ function normalizeDemoUser(user: DemoUser): DemoUser & { userId: string; custome
 }
 
 function demoUserToCustomer(user: DemoUser): Customer | null {
-  if (!user.customerId || !user.cmrTier || !user.comuna) return null
+  if (!user.customerId || !user.comuna) return null
   return {
     customerId: user.customerId,
     firstName: user.firstName || user.name?.split(' ')[0] || 'Cliente',
-    cmrTier: user.cmrTier,
+    cmrTier: user.cmrTier ?? null,
     comuna: user.comuna,
   }
 }

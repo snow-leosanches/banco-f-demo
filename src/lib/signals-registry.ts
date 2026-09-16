@@ -6,10 +6,12 @@
 import { getSignalsEnv, signalsEnvDetails } from './signals-env'
 import {
   benefitsAgentContextService,
-  benefitsAnonymousBehavior,
   benefitsAssistantContext,
-  benefitsSessionBehavior,
+  customerIdAttributesGroup,
   customerIdKey,
+  domainUseridAttributesGroup,
+  RETIRED_ATTRIBUTE_GROUPS,
+  RETIRED_INTERVENTIONS,
   travelIntentNudge,
 } from './signals-definitions'
 
@@ -116,7 +118,7 @@ async function registryRequest(
   })
 
   const text = await response.text()
-  if (![200, 201, 202].includes(response.status)) {
+  if (![200, 201, 202, 204].includes(response.status)) {
     throw new SignalsRegistryError(
       `Signals registry ${method} ${endpoint} failed (${response.status})`,
       response.status,
@@ -148,6 +150,10 @@ function isAlreadyPublishedError(error: SignalsRegistryError): boolean {
   )
 }
 
+function isIgnorableMissing(error: SignalsRegistryError): boolean {
+  return error.status === 404 || error.body.toLowerCase().includes('not found')
+}
+
 async function createOrUpdate(collection: string, payload: unknown, putPath: string): Promise<JsonObject> {
   try {
     return await registryRequest('POST', `registry/${collection}/`, payload)
@@ -169,6 +175,78 @@ async function createOrUpdate(collection: string, payload: unknown, putPath: str
   }
 }
 
+/** PUT a published object by unpublishing first, then republishing. */
+async function createOrReplacePublished(
+  collection: string,
+  payload: unknown,
+  putPath: string,
+  unpublishPayload: JsonObject,
+  publishPayload: JsonObject,
+): Promise<JsonObject> {
+  const result = await createOrUpdate(collection, payload, putPath)
+  if (!result.skipped) return result
+
+  await registryRequest('POST', 'engines/unpublish', unpublishPayload).catch((error) => {
+    if (error instanceof SignalsRegistryError && (isIgnorableMissing(error) || error.status === 400)) return {}
+    throw error
+  })
+  const updated = await registryRequest('PUT', `registry/${putPath}`, payload)
+  await registryRequest('POST', 'engines/publish', publishPayload).catch((error) => {
+    if (error instanceof SignalsRegistryError && isAlreadyPublishedError(error)) return {}
+    throw error
+  })
+  return updated
+}
+
+async function publishAttributeGroup(group: typeof customerIdAttributesGroup | typeof domainUseridAttributesGroup): Promise<void> {
+  await createOrUpdate(
+    'attribute_groups',
+    group,
+    `attribute_groups/${group.name}/versions/${group.version}`,
+  )
+  await registryRequest('POST', 'engines/publish', {
+    attribute_groups: [{ name: group.name, version: group.version }],
+  }).catch((error) => {
+    if (error instanceof SignalsRegistryError && isAlreadyPublishedError(error)) return {}
+    throw error
+  })
+}
+
+async function unpublishAndDelete(
+  kind: 'attribute_groups' | 'interventions',
+  name: string,
+  version: number,
+): Promise<void> {
+  await registryRequest('POST', 'engines/unpublish', {
+    [kind]: [{ name, version }],
+  }).catch((error) => {
+    if (
+      error instanceof SignalsRegistryError &&
+      (isIgnorableMissing(error) || error.status === 400 || error.status === 409)
+    ) {
+      return {}
+    }
+    throw error
+  })
+
+  const paths = [`${kind}/${name}/versions/${version}`, `${kind}/${name}`]
+  let lastError: unknown
+  for (const path of paths) {
+    try {
+      await registryRequest('DELETE', `registry/${path}`)
+      return
+    } catch (error) {
+      lastError = error
+      if (error instanceof SignalsRegistryError && (isIgnorableMissing(error) || error.status === 405)) {
+        continue
+      }
+      throw error
+    }
+  }
+  if (lastError instanceof SignalsRegistryError && isIgnorableMissing(lastError)) return
+  if (lastError) throw lastError
+}
+
 export interface PublishStepResult {
   type: string
   name: string
@@ -185,23 +263,13 @@ export async function publishSignalsRegistry(): Promise<PublishStepResult[]> {
     },
     {
       type: 'attribute_group',
-      name: benefitsSessionBehavior.name,
-      run: () =>
-        createOrUpdate(
-          'attribute_groups',
-          benefitsSessionBehavior,
-          `attribute_groups/${benefitsSessionBehavior.name}/versions/${benefitsSessionBehavior.version}`,
-        ).then(() => undefined),
+      name: customerIdAttributesGroup.name,
+      run: () => publishAttributeGroup(customerIdAttributesGroup),
     },
     {
       type: 'attribute_group',
-      name: benefitsAnonymousBehavior.name,
-      run: () =>
-        createOrUpdate(
-          'attribute_groups',
-          benefitsAnonymousBehavior,
-          `attribute_groups/${benefitsAnonymousBehavior.name}/versions/${benefitsAnonymousBehavior.version}`,
-        ).then(() => undefined),
+      name: domainUseridAttributesGroup.name,
+      run: () => publishAttributeGroup(domainUseridAttributesGroup),
     },
     {
       type: 'event_log',
@@ -224,22 +292,36 @@ export async function publishSignalsRegistry(): Promise<PublishStepResult[]> {
       type: 'service',
       name: benefitsAgentContextService.name,
       run: () =>
-        createOrUpdate(
+        createOrReplacePublished(
           'services',
           benefitsAgentContextService,
           `services/${benefitsAgentContextService.name}`,
+          { services: [{ name: benefitsAgentContextService.name }] },
+          { services: [{ name: benefitsAgentContextService.name }] },
         ).then(() => undefined),
     },
     {
       type: 'intervention',
       name: travelIntentNudge.name,
       run: () =>
-        createOrUpdate(
+        createOrReplacePublished(
           'interventions',
           travelIntentNudge,
           `interventions/${travelIntentNudge.name}/versions/${travelIntentNudge.version}`,
+          { interventions: [{ name: travelIntentNudge.name, version: travelIntentNudge.version }] },
+          { interventions: [{ name: travelIntentNudge.name, version: travelIntentNudge.version }] },
         ).then(() => undefined),
     },
+    ...RETIRED_ATTRIBUTE_GROUPS.map((group) => ({
+      type: 'attribute_group_delete',
+      name: group.name,
+      run: () => unpublishAndDelete('attribute_groups', group.name, group.version),
+    })),
+    ...RETIRED_INTERVENTIONS.map((intervention) => ({
+      type: 'intervention_delete',
+      name: intervention.name,
+      run: () => unpublishAndDelete('interventions', intervention.name, intervention.version),
+    })),
   ]
 
   const results: PublishStepResult[] = []
@@ -255,7 +337,9 @@ export async function publishSignalsRegistry(): Promise<PublishStepResult[]> {
             ? error.message
             : String(error)
       results.push({ type: job.type, name: job.name, ok: false, error: message })
-      break
+      // Old-name cleanup is best-effort: new objects can still be used if Console
+      // delete needs a manual unpublish after dependents are retargeted.
+      if (!job.type.endsWith('_delete')) break
     }
   }
   return results

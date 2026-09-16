@@ -10,7 +10,7 @@ export type KnownCustomer = {
   firstName: string
   email: string
   phone: string
-  cmrTier: CmrTier
+  cmrTier: CmrTier | null
   comuna: string
   benefitsLabel: string
   savingsLabel: string
@@ -37,7 +37,7 @@ export const knownCustomers: KnownCustomer[] = [
     firstName: 'Diego',
     email: 'diego.soto@bancof.demo',
     phone: '+56922222222',
-    cmrTier: 'CMR Verde',
+    cmrTier: null,
     comuna: 'Maipú',
     benefitsLabel: 'pocos beneficios',
     savingsLabel: 'sueldo más bajo',

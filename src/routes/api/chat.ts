@@ -21,7 +21,7 @@ const CTX_END = '__ENDCTX__'
 const GUEST_CUSTOMER: Customer = {
   customerId: GUEST_USER_ID,
   firstName: 'Cliente',
-  cmrTier: 'CMR Verde',
+  cmrTier: null,
   comuna: 'Santiago',
 }
 

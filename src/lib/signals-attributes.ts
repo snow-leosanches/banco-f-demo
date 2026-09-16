@@ -13,14 +13,14 @@ export const SESSION_BEHAVIOR_ATTRIBUTES = [
 ] as const
 
 export const ANONYMOUS_ATTRIBUTE_GROUP = {
-  name: 'benefits_anonymous_behavior',
+  name: 'banco_falabella_domain_userid_attributes',
   version: 1,
   attributeKey: 'domain_userid',
   attributes: SESSION_BEHAVIOR_ATTRIBUTES,
 } as const
 
 export const IDENTIFIED_ATTRIBUTE_GROUP = {
-  name: 'benefits_session_behavior',
+  name: 'banco_falabella_customer_id_attributes',
   version: 1,
   attributeKey: 'customer_id',
   attributes: SESSION_BEHAVIOR_ATTRIBUTES,
