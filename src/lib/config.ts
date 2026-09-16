@@ -1,4 +1,4 @@
-import { CAMILA_USER_ID } from './user-id'
+import { CAMILA_USER_ID, DIEGO_USER_ID, VALENTINA_USER_ID } from './user-id'
 
 export interface MenuItem {
   label: string
@@ -387,9 +387,13 @@ export function getBenefitById(id: string): Benefit | undefined {
 }
 
 export const banditTop3ByCustomer: Record<string, string[]> = {
+  [DIEGO_USER_ID]: ['burger-king', 'copec', 'tottus'],
   [CAMILA_USER_ID]: ['turbus', 'lipigas', 'dunkin'],
+  [VALENTINA_USER_ID]: ['sky-airline', 'falabella-retail', 'hoteles-decameron'],
 }
 
 export const recurringMerchantsByCustomer: Record<string, string[]> = {
+  [DIEGO_USER_ID]: ['copec'],
   [CAMILA_USER_ID]: ['shell', 'tottus'],
+  [VALENTINA_USER_ID]: ['falabella-retail', 'sodimac'],
 }

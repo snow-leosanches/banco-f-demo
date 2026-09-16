@@ -4,12 +4,12 @@ import { createFileRoute } from '@tanstack/react-router'
 // import from '@tanstack/react-start' somewhere in this file's compilation
 // unit, TypeScript never loads that augmentation and `server` type-errors.
 import type {} from '@tanstack/react-start'
-import { streamText } from 'ai'
-import { google } from '@ai-sdk/google'
+import { streamText, isStepCount } from 'ai'
 
 import { type Customer } from '@/lib/config'
 import { getBenefitsSignalsContext } from '@/lib/signals-server'
 import { assembleContext, buildSystemPrompt, type ClientBehaviorSnapshot } from '@/lib/agent-prompt'
+import { agentTools, customerToolsContext } from '@/lib/tools'
 import { GUEST_USER_ID } from '@/lib/user-id'
 
 // Sentinel wrapping the context metadata sent as the first stream chunk, so
@@ -55,9 +55,12 @@ export const Route = createFileRoute('/api/chat')({
         const systemPrompt = buildSystemPrompt(context)
 
         const result = streamText({
-          model: google('gemini-2.5-flash'),
+          model: 'anthropic/claude-haiku-4.5',
           system: systemPrompt,
           prompt: body.message,
+          tools: agentTools,
+          toolsContext: customerToolsContext(customer.customerId),
+          stopWhen: isStepCount(8),
           onError: ({ error }) => {
             console.error('[api/chat] streamText error', error)
           },

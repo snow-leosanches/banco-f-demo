@@ -12,6 +12,8 @@ export type KnownCustomer = {
   phone: string
   cmrTier: CmrTier
   comuna: string
+  benefitsLabel: string
+  savingsLabel: string
 }
 
 export const COMUNAS = [
@@ -29,6 +31,18 @@ export const CMR_TIERS: CmrTier[] = ['CMR Verde', 'CMR Lover', 'CMR Elite']
 
 export const knownCustomers: KnownCustomer[] = [
   {
+    id: DIEGO_USER_ID,
+    customerId: DIEGO_USER_ID,
+    name: 'Diego Soto',
+    firstName: 'Diego',
+    email: 'diego.soto@bancof.demo',
+    phone: '+56922222222',
+    cmrTier: 'CMR Verde',
+    comuna: 'Maipú',
+    benefitsLabel: 'pocos beneficios',
+    savingsLabel: 'sueldo más bajo',
+  },
+  {
     // Fixed GUIDs (not random) so these identities stay stable across demo
     // sessions. Signals' real-time interventions API rejects any non-GUID
     // attribute key value (e.g. a plain email, slug, or `cust-84213`).
@@ -40,16 +54,8 @@ export const knownCustomers: KnownCustomer[] = [
     phone: '+56911111111',
     cmrTier: currentCustomer.cmrTier,
     comuna: currentCustomer.comuna,
-  },
-  {
-    id: DIEGO_USER_ID,
-    customerId: DIEGO_USER_ID,
-    name: 'Diego Soto',
-    firstName: 'Diego',
-    email: 'diego.soto@bancof.demo',
-    phone: '+56922222222',
-    cmrTier: 'CMR Verde',
-    comuna: 'Maipú',
+    benefitsLabel: 'algunos beneficios',
+    savingsLabel: 'más gasto este mes',
   },
   {
     id: VALENTINA_USER_ID,
@@ -60,6 +66,8 @@ export const knownCustomers: KnownCustomer[] = [
     phone: '+56933333333',
     cmrTier: 'CMR Elite',
     comuna: 'Las Condes',
+    benefitsLabel: 'todos los beneficios',
+    savingsLabel: 'cambió su opción de beneficios',
   },
 ]
 

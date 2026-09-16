@@ -16,7 +16,6 @@
     "signals:publish": "curl -fsS -X POST http://localhost:3000/api/signals/registry"
   },
   "dependencies": {
-    "@ai-sdk/google": "^4.0.68",
     "@faker-js/faker": "^10.6.0",
     "@snowplow/browser-plugin-enhanced-consent": "^4.10.2",
     "@snowplow/browser-plugin-link-click-tracking": "^4.10.2",

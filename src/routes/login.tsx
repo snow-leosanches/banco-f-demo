@@ -152,7 +152,8 @@ function LoginPage() {
       <section className="mt-6 rounded-lg border border-border bg-surface p-6 shadow-sm">
         <h2 className="font-heading text-h3 text-text">Clientes conocidos</h2>
         <p className="mt-1 text-small text-text-secondary">
-          Reutiliza una identidad estable entre sesiones de demo.
+          Reutiliza una identidad estable. El asistente ve beneficios y un motivo
+          distinto de “por qué ahorro menos” según el cliente.
         </p>
         <div className="mt-4 flex flex-col gap-2">
           {knownCustomers.map((customer) => (
@@ -162,7 +163,7 @@ function LoginPage() {
               onClick={() => performKnownCustomerLogin(customer)}
               className="rounded-full bg-secondary px-4 py-2.5 text-left text-small font-medium text-white hover:bg-highlight"
             >
-              {customer.name} · {customer.cmrTier} ({customer.email})
+              {customer.name} · {customer.cmrTier} · {customer.benefitsLabel} · {customer.savingsLabel}
             </button>
           ))}
         </div>
