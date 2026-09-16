@@ -9,7 +9,9 @@ import {
   ANONYMOUS_ATTRIBUTE_GROUP,
   IDENTIFIED_ATTRIBUTE_GROUP,
   hasSessionBehavior,
+  parseCustomerMemory,
   parseSessionBehavior,
+  type CustomerMemoryAttributes,
   type SessionBehaviorAttributes,
 } from '@/lib/signals-attributes'
 
@@ -40,7 +42,7 @@ async function fetchAttributeGroup(
 
 export interface SignalsAttributesState {
   anonymous: SessionBehaviorAttributes | null
-  identified: SessionBehaviorAttributes | null
+  identified: CustomerMemoryAttributes | null
   domainUserId: string | null
   customerId: string | null
   isIdentified: boolean
@@ -61,7 +63,7 @@ export function useSignalsAttributes(options?: {
     typeof window === 'undefined' ? true : isSignalsEnabled(),
   )
   const [anonymous, setAnonymous] = useState<SessionBehaviorAttributes | null>(null)
-  const [identified, setIdentified] = useState<SessionBehaviorAttributes | null>(null)
+  const [identified, setIdentified] = useState<CustomerMemoryAttributes | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -123,7 +125,7 @@ export function useSignalsAttributes(options?: {
           : Promise.resolve({}),
       ])
       const nextAnon = parseSessionBehavior(anonRaw)
-      const nextIdent = parseSessionBehavior(identRaw)
+      const nextIdent = parseCustomerMemory(identRaw)
       setAnonymous(hasSessionBehavior(nextAnon) || fetchAnonymous ? nextAnon : null)
       setIdentified(fetchIdentified ? nextIdent : null)
     } catch (err) {

@@ -1,15 +1,23 @@
 /**
  * Stream attribute groups shown in the presenter Signals panel.
  *
- * Same calculations, two identity keys:
- * - domain_userid: cookie identity, populated even before login
- * - customer_id: signed-in customer entity, starts calculating after login
+ * domain_userid: this-visit intent (short windows, cookie identity)
+ * customer_id: this-customer memory (7-day rolling window, after login)
  */
+export const PAGE_PING_HEARTBEAT_SECONDS = 10
+
 export const SESSION_BEHAVIOR_ATTRIBUTES = [
   'categories_viewed_last_30m',
   'last_merchant_viewed',
   'benefit_views_last_10m',
   'travel_pages_last_10m',
+] as const
+
+export const CUSTOMER_MEMORY_ATTRIBUTES = [
+  'benefits_visited_last_7d',
+  'merchants_visited_last_7d',
+  'page_pings_last_7d',
+  'sessions_last_7d',
 ] as const
 
 export const ANONYMOUS_ATTRIBUTE_GROUP = {
@@ -21,9 +29,9 @@ export const ANONYMOUS_ATTRIBUTE_GROUP = {
 
 export const IDENTIFIED_ATTRIBUTE_GROUP = {
   name: 'banco_falabella_customer_id_attributes',
-  version: 1,
+  version: 2,
   attributeKey: 'customer_id',
-  attributes: SESSION_BEHAVIOR_ATTRIBUTES,
+  attributes: CUSTOMER_MEMORY_ATTRIBUTES,
 } as const
 
 export interface SessionBehaviorAttributes {
@@ -31,6 +39,13 @@ export interface SessionBehaviorAttributes {
   last_merchant_viewed?: string
   benefit_views_last_10m?: number
   travel_pages_last_10m?: number
+}
+
+export interface CustomerMemoryAttributes {
+  benefits_visited_last_7d?: string[]
+  merchants_visited_last_7d?: string[]
+  page_pings_last_7d?: number
+  sessions_last_7d?: number
 }
 
 export function parseSessionBehavior(raw: Record<string, unknown>): SessionBehaviorAttributes {
@@ -42,6 +57,15 @@ export function parseSessionBehavior(raw: Record<string, unknown>): SessionBehav
   }
 }
 
+export function parseCustomerMemory(raw: Record<string, unknown>): CustomerMemoryAttributes {
+  return {
+    benefits_visited_last_7d: asStringList(raw.benefits_visited_last_7d),
+    merchants_visited_last_7d: asStringList(raw.merchants_visited_last_7d),
+    page_pings_last_7d: asNumber(raw.page_pings_last_7d),
+    sessions_last_7d: asNumber(raw.sessions_last_7d),
+  }
+}
+
 export function hasSessionBehavior(attrs: SessionBehaviorAttributes | null): boolean {
   if (!attrs) return false
   return (
@@ -50,6 +74,31 @@ export function hasSessionBehavior(attrs: SessionBehaviorAttributes | null): boo
     typeof attrs.benefit_views_last_10m === 'number' ||
     typeof attrs.travel_pages_last_10m === 'number'
   )
+}
+
+export function hasCustomerMemory(attrs: CustomerMemoryAttributes | null): boolean {
+  if (!attrs) return false
+  return (
+    (attrs.benefits_visited_last_7d?.length ?? 0) > 0 ||
+    (attrs.merchants_visited_last_7d?.length ?? 0) > 0 ||
+    typeof attrs.page_pings_last_7d === 'number' ||
+    typeof attrs.sessions_last_7d === 'number'
+  )
+}
+
+export function estimatedAvgSessionSeconds(
+  pings: number | undefined,
+  sessions: number | undefined,
+): number | undefined {
+  if (typeof pings !== 'number' || typeof sessions !== 'number' || sessions <= 0) return undefined
+  return Math.round((pings * PAGE_PING_HEARTBEAT_SECONDS) / sessions)
+}
+
+export function formatEngagedDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  const remainder = seconds % 60
+  return remainder ? `${minutes}m ${remainder}s` : `${minutes}m`
 }
 
 function asString(value: unknown): string | undefined {

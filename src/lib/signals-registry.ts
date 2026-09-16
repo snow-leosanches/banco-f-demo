@@ -312,6 +312,24 @@ export async function publishSignalsRegistry(): Promise<PublishStepResult[]> {
           { interventions: [{ name: travelIntentNudge.name, version: travelIntentNudge.version }] },
         ).then(() => undefined),
     },
+    {
+      type: 'attribute_group_delete',
+      name: `${customerIdAttributesGroup.name}:1`,
+      run: () =>
+        registryRequest('POST', 'engines/unpublish', {
+          attribute_groups: [{ name: customerIdAttributesGroup.name, version: 1 }],
+        })
+          .catch((error) => {
+            if (
+              error instanceof SignalsRegistryError &&
+              (isIgnorableMissing(error) || error.status === 400)
+            ) {
+              return {}
+            }
+            throw error
+          })
+          .then(() => undefined),
+    },
     ...RETIRED_ATTRIBUTE_GROUPS.map((group) => ({
       type: 'attribute_group_delete',
       name: group.name,

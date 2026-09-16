@@ -51,9 +51,6 @@ const TRACKER_NAMESPACE = 'sp1'
 const SIGNALS_ENDPOINT = 'https://7f9742b834d7.signals.snowplowanalytics.com'
 
 const SCHEMA_VENDOR = 'com.bancofalabella'
-const INTERVENTION_ATTRIBUTE_KEY_TARGETS = {
-  customer_id: ['/cx/com.bancofalabella/customer/jsonschema/1/customer_id'] as [`/${string}`],
-}
 
 const SCHEMAS = {
   customer: `iglu:${SCHEMA_VENDOR}/customer/jsonschema/1-0-0`,
@@ -112,6 +109,8 @@ export function initializeSnowplow(): void {
       })
     },
   })
+
+  subscribeToTravelNudge()
 
   isInitialized = true
 }
@@ -178,19 +177,13 @@ export function setCustomerContext(customer: Customer): void {
       },
     },
   ])
-  updateInterventionIdentity(customer.customerId)
 }
 
-/**
- * Pushes customer_id into the interventions subscription on login.
- * banco_falabella_travel_intent_nudge is exclusive to identified customers.
- */
-function updateInterventionIdentity(customerId: string): void {
-  if (!siteConfig.features.signals || !isSignalsEnabled() || !isGuid(customerId)) return
+/** Subscribe on domain_userid (plugin default). The orb still only renders after login. */
+function subscribeToTravelNudge(): void {
+  if (!siteConfig.features.signals || !isSignalsEnabled()) return
   subscribeToInterventions({
     endpoint: SIGNALS_ENDPOINT,
-    attributeKeyTargets: INTERVENTION_ATTRIBUTE_KEY_TARGETS,
-    attributeKeyIds: { customer_id: customerId },
   })
 }
 

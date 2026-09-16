@@ -34,6 +34,10 @@ function atomicProperty(name: string) {
   return { type: 'atomic' as const, name }
 }
 
+function snowplowEvent(name: string) {
+  return { name, vendor: 'com.snowplowanalytics.snowplow', version: EVENT_VERSION }
+}
+
 export const customerIdKey = {
   description: 'Banco F bank customer ID',
   is_published: true,
@@ -98,10 +102,51 @@ const sessionBehaviorAttributes = [
   },
 ] as const
 
+const customerMemoryAttributes = [
+  {
+    aggregation: 'unique_list',
+    description: 'Distinct benefit catalog IDs the customer opened in the last 7 days',
+    events: [schemaEvent('benefit_viewed')],
+    name: 'benefits_visited_last_7d',
+    period: 'P7D',
+    property: eventProperty('benefit_viewed', '$.benefit_id'),
+    type: 'string_list',
+  },
+  {
+    aggregation: 'unique_list',
+    description: 'Distinct benefit merchants the customer opened in the last 7 days',
+    events: [schemaEvent('benefit_viewed')],
+    name: 'merchants_visited_last_7d',
+    period: 'P7D',
+    property: eventProperty('benefit_viewed', '$.merchant'),
+    type: 'string_list',
+  },
+  {
+    aggregation: 'counter',
+    description:
+      'Page pings in the last 7 days. Heartbeat is 10s (after 20s on the page); panel estimates engaged time as pings × 10s',
+    events: [snowplowEvent('page_ping')],
+    name: 'page_pings_last_7d',
+    period: 'P7D',
+    property: atomicProperty('event_id'),
+    type: 'int32',
+  },
+  {
+    aggregation: 'approx_count_distinct',
+    description: 'Approximate distinct domain_sessionid values from page views in the last 7 days',
+    events: [snowplowEvent('page_view')],
+    name: 'sessions_last_7d',
+    period: 'P7D',
+    property: atomicProperty('domain_sessionid'),
+    type: 'int32',
+  },
+] as const
+
 export const customerIdAttributesGroup = {
   attribute_key: { name: 'customer_id' },
-  attributes: sessionBehaviorAttributes,
-  description: 'Real-time benefits-browsing behavior for the Banco F Signals POC, keyed by customer_id',
+  attributes: customerMemoryAttributes,
+  description:
+    'Seven-day customer memory for the Banco F Signals POC: benefits and merchants visited, plus ping/session volume for estimated average engaged session',
   is_published: true,
   name: IDENTIFIED_ATTRIBUTE_GROUP.name,
   offline: false,
@@ -114,7 +159,7 @@ export const domainUseridAttributesGroup = {
   attribute_key: { name: 'domain_userid' },
   attributes: sessionBehaviorAttributes,
   description:
-    'Same session-behavior calculations as banco_falabella_customer_id_attributes, keyed by domain_userid so attributes calculate for anonymous visitors',
+    'This-visit benefits-browsing behavior keyed by domain_userid so attributes calculate for anonymous visitors and keep updating after login',
   is_published: true,
   name: ANONYMOUS_ATTRIBUTE_GROUP.name,
   offline: false,
@@ -171,16 +216,16 @@ export const benefitsAgentContextService = {
 
 export const travelIntentNudge = {
   criteria: {
-    attribute: `${IDENTIFIED_ATTRIBUTE_GROUP.name}:travel_pages_last_10m`,
+    attribute: `${ANONYMOUS_ATTRIBUTE_GROUP.name}:travel_pages_last_10m`,
     operator: '>=',
     value: 3,
   },
   description:
-    'Logged-in only (customer_id). Fires after 3+ Viajes benefit views in 10 minutes. Orb copy is CMR vs sign-up depending on whether the login has a card.',
+    'Fires after 3+ Viajes benefit views in 10 minutes on domain_userid. The in-app orb still only renders after login (CMR vs sign-up copy).',
   is_published: true,
   name: SIGNALS_INTERVENTION_NAME,
   owner: SIGNALS_OWNER,
-  target_attribute_keys: [{ name: 'customer_id' }],
+  target_attribute_keys: [{ name: 'domain_userid' }],
   version: 1,
 }
 

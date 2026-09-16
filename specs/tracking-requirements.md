@@ -71,15 +71,15 @@ Not yet wired into the ADK-equivalent chat route (`src/routes/api/chat.ts`). Per
 Published via `POST /api/signals/registry` (`src/lib/signals-definitions.ts` + `src/lib/signals-registry.ts`). Locally: `npm run dev` then `npm run signals:publish`. On Vercel, set `SIGNALS_PUBLISH_SECRET` and POST with `Authorization: Bearer <secret>`.
 
 - Custom attribute key `customer_id`, extracted from the `customer` entity's `customer_id` field — **published**
-- Stream attribute group `banco_falabella_customer_id_attributes`, key `customer_id`: `categories_viewed_last_30m`, `last_merchant_viewed`, `benefit_views_last_10m`, `travel_pages_last_10m` — **published**
-- Stream attribute group `banco_falabella_domain_userid_attributes`, same attributes keyed by `domain_userid` — **published**
+- Stream attribute group `banco_falabella_domain_userid_attributes`, key `domain_userid` (this-visit intent): `categories_viewed_last_30m`, `last_merchant_viewed`, `benefit_views_last_10m`, `travel_pages_last_10m` — **published**
+- Stream attribute group `banco_falabella_customer_id_attributes`, key `customer_id` (7-day customer memory): `benefits_visited_last_7d`, `merchants_visited_last_7d`, `page_pings_last_7d`, `sessions_last_7d` — **published**. The panel derives estimated average engaged session as `(page_pings_last_7d × 10s) / sessions_last_7d`. `period: P7D` is a rolling window, not a TTL.
 - Service `benefits_agent_context_v1` bundling `banco_falabella_customer_id_attributes` — **published**
 - Agentic context `benefits_assistant_context`, scoped to `domain_sessionid` (fixed by Signals — cannot key on `customer_id`), capturing `benefit_viewed` / `benefit_category_filtered` / `product_page_viewed`, 50 events / 30 min — **published**
-- Intervention `banco_falabella_travel_intent_nudge`: `banco_falabella_customer_id_attributes:travel_pages_last_10m >= 3`, targeted to `customer_id` (logged-in only) — **published**
+- Intervention `banco_falabella_travel_intent_nudge`: `banco_falabella_domain_userid_attributes:travel_pages_last_10m >= 3`, targeted to `domain_userid`. The in-app orb still only renders after login (CMR vs sign-up copy). — **published**
 - Warehouse attribute group `customer_scores` (`bandit_top_3`, `cmr_tier`, `home_comuna`, `recurring_merchants`) — **not created**, needs a real BigQuery/Snowflake table first. Add it to `benefits_agent_context_v1`'s `attribute_groups` once that table exists.
 
 Verified live and responding (see conversation, 2026-09-11): `get_attribute_group`, `get_service_attributes`, and `get_agentic_context` all return correctly (empty values, since no real event traffic has flowed through this pipeline yet — that starts once the app is actually run against `com-snplow-sales-aws-prod1.collector.snplow.net`).
 
-**Known gap:** the browser-side intervention subscription in `src/lib/snowplow-config.ts` targets the custom `customer_id` attribute key via `attributeKeyTargets` with a best-effort JSON pointer (`/cx/com.bancofalabella/customer/jsonschema/1/customer_id`) — this exact path format wasn't verified against the live plugin before the session ended. Verify with Console's intervention test-send tool before the live demo. If it doesn't resolve, the orb still fires reliably via the client-side behavior counter in `src/contexts/assistant-context.tsx` (the demo does not depend on this wiring being correct).
+The browser plugin subscribes on `domain_userid` (Signals default) at tracker init. The orb is still login-gated in `src/contexts/assistant-context.tsx`; if Signals delivery is delayed, the local Viajes counter is the fallback.
 
 The app's **local fallback** (`assembleContext` in `src/lib/agent-prompt.ts`, counter in `src/contexts/assistant-context.tsx`) means the demo's control/treatment/proactive-nudge beats all work even before real event traffic populates the Profiles Store — the app automatically prefers real Signals data once it's there, no code change needed.
