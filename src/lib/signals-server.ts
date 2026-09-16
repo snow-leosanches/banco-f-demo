@@ -1,13 +1,14 @@
 /**
- * Server-only Signals client. Used by the chat route (service + agentic
- * context) and by the presenter Signals panel (per-identity attribute groups).
+ * Server-only Signals client. Used by the chat route (attribute groups +
+ * agentic context) and by the presenter Signals panel.
  *
  * Requires SIGNALS_API_ENDPOINT / SIGNALS_API_KEY / SIGNALS_API_KEY_ID /
  * SNOWPLOW_CONSOLE_ORG_ID. Until those are set every call fails soft so
  * `npm run dev` still works.
  */
 import { Signals } from '@snowplow/signals-node'
-import { SIGNALS_AGENTIC_CONTEXT_NAME, SIGNALS_SERVICE_NAME } from './signals-definitions'
+import { SIGNALS_AGENTIC_CONTEXT_NAME } from './signals-definitions'
+import { ANONYMOUS_ATTRIBUTE_GROUP, IDENTIFIED_ATTRIBUTE_GROUP } from './signals-attributes'
 import { getSignalsEnv, signalsEnvDetails } from './signals-env'
 import { isGuid } from './user-id'
 
@@ -63,9 +64,21 @@ function getClient(): Signals | null {
   return client
 }
 
+type StreamGroup = typeof ANONYMOUS_ATTRIBUTE_GROUP | typeof IDENTIFIED_ATTRIBUTE_GROUP
+
+function fetchGroupAttributes(signals: Signals, group: StreamGroup, identifier: string) {
+  return signals.getGroupAttributes({
+    attribute_key: group.attributeKey,
+    identifier,
+    name: group.name,
+    version: group.version,
+    attributes: [...group.attributes] as [string, ...string[]],
+  })
+}
+
 export interface BenefitsSignalsContext {
-  /** Raw attribute values from the benefits_agent_context_v1 service (stream + warehouse). */
-  serviceAttributes: Record<string, unknown> | null
+  /** Raw values from the two stream attribute groups, keyed by group name. */
+  groupAttributes: Record<string, unknown> | null
   /** LLM-ready narrative of the customer's current session activity. */
   agenticNarrative: string | null
   /** True if we reached Signals at all (even partially). */
@@ -74,21 +87,19 @@ export interface BenefitsSignalsContext {
 
 export async function getBenefitsSignalsContext(params: {
   customerId: string
+  domainUserId: string | null
   domainSessionId: string | null
 }): Promise<BenefitsSignalsContext> {
   const signals = getClient()
   if (!signals || !isGuid(params.customerId)) {
-    return { serviceAttributes: null, agenticNarrative: null, available: false }
+    return { groupAttributes: null, agenticNarrative: null, available: false }
   }
 
-  const [serviceAttributes, agenticNarrative] = await Promise.all([
-    signals
-      .getServiceAttributes({
-        attribute_key: 'customer_id',
-        identifier: params.customerId,
-        name: SIGNALS_SERVICE_NAME,
-      })
-      .catch(() => null),
+  const [identifiedAttributes, visitAttributes, agenticNarrative] = await Promise.all([
+    fetchGroupAttributes(signals, IDENTIFIED_ATTRIBUTE_GROUP, params.customerId).catch(() => null),
+    params.domainUserId
+      ? fetchGroupAttributes(signals, ANONYMOUS_ATTRIBUTE_GROUP, params.domainUserId).catch(() => null)
+      : Promise.resolve(null),
     params.domainSessionId
       ? signals
           .getAgenticContext({
@@ -100,9 +111,17 @@ export async function getBenefitsSignalsContext(params: {
       : Promise.resolve(null),
   ])
 
+  const groupAttributes =
+    identifiedAttributes || visitAttributes
+      ? {
+          ...(identifiedAttributes ? { [IDENTIFIED_ATTRIBUTE_GROUP.name]: identifiedAttributes } : {}),
+          ...(visitAttributes ? { [ANONYMOUS_ATTRIBUTE_GROUP.name]: visitAttributes } : {}),
+        }
+      : null
+
   return {
-    serviceAttributes,
+    groupAttributes,
     agenticNarrative,
-    available: serviceAttributes !== null || agenticNarrative !== null,
+    available: groupAttributes !== null || agenticNarrative !== null,
   }
 }

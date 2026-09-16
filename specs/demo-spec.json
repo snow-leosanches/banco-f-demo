@@ -89,10 +89,6 @@
       "window": "50 events / 30 min",
       "prompt": "You are Banco Falabella's benefits assistant. Use recent activity to prioritize benefits the customer is actively exploring. Never invent benefits not in the catalog."
     },
-    "service": {
-      "name": "benefits_agent_context_v1",
-      "bundles": ["banco_falabella_customer_id_attributes", "customer_scores"]
-    },
     "intervention": {
       "name": "banco_falabella_travel_intent_nudge",
       "rule": "banco_falabella_domain_userid_attributes:travel_pages_last_10m >= 3",

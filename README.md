@@ -59,7 +59,7 @@ For the Signals treatment beat, log in as Camila, browse Viajes (TurBus, Lipigas
 
 ## Signals registry publish
 
-`npm run signals:publish` is **not** part of everyday startup. It writes attribute keys, attribute groups, the service, the intervention, and the agentic context to Snowplow Console. Those objects persist there.
+`npm run signals:publish` is **not** part of everyday startup. It writes attribute keys, attribute groups, the intervention, and the agentic context to Snowplow Console. Those objects persist there.
 
 You do **not** need it when you:
 
@@ -72,6 +72,6 @@ Run it only when the registry definitions change (or the first time you point th
 1. Start the app (`npm run dev`)
 2. `npm run signals:publish`
 
-Definitions live in `src/lib/signals-definitions.ts`. Attribute groups are `banco_falabella_domain_userid_attributes` (this-visit intent, key `domain_userid`) and `banco_falabella_customer_id_attributes` (7-day customer memory, key `customer_id`). The travel intervention is `banco_falabella_travel_intent_nudge` (`travel_pages_last_10m >= 3` on `domain_userid`; the in-app orb still only renders after login). The command POSTs to `/api/signals/registry` on the running app. Re-running it is safe: objects that already exist in Console are updated or skipped. The first publish after a rename also unpublishes and deletes retired names (`benefits_session_behavior`, `benefits_anonymous_behavior`, `travel_intent_nudge`).
+Definitions live in `src/lib/signals-definitions.ts`. Attribute groups are `banco_falabella_domain_userid_attributes` (this-visit intent, key `domain_userid`) and `banco_falabella_customer_id_attributes` (7-day customer memory, key `customer_id`). There is no Signals service: the panel and the Asistente both read those groups directly. The travel intervention is `banco_falabella_travel_intent_nudge` (`travel_pages_last_10m >= 3` on `domain_userid`; the in-app orb still only renders after login). The command POSTs to `/api/signals/registry` on the running app. Re-running it is safe: objects that already exist in Console are updated or skipped. The first publish after a rename also unpublishes and deletes retired names (`benefits_session_behavior`, `benefits_anonymous_behavior`, `travel_intent_nudge`, `benefits_agent_context_v1`, `banco_falabella_agent_context`).
 
 On Vercel, set `SIGNALS_PUBLISH_SECRET` and POST with `Authorization: Bearer <secret>`. Production rejects publish requests without that secret.

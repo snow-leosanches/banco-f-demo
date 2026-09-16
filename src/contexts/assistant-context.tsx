@@ -10,6 +10,7 @@ import {
   subscribeInterventionTriggers,
 } from '@/lib/intervention-log'
 import { SIGNALS_INTERVENTION_NAME } from '@/lib/signals-definitions'
+import { getSnowplowDomainUserId } from '@/lib/snowplow-config'
 import { useUser } from '@/contexts/user-context'
 
 const CTX_START = '__CTX__'
@@ -145,6 +146,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({
             message: text,
             domainSessionId: getDomainSessionId() ?? null,
+            domainUserId: getSnowplowDomainUserId(),
             signalsEnabled: isSignalsEnabled(),
             clientBehavior: getClientBehaviorSnapshot(),
             customer,

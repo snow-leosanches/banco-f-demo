@@ -5,13 +5,13 @@
  */
 import { getSignalsEnv, signalsEnvDetails } from './signals-env'
 import {
-  benefitsAgentContextService,
   benefitsAssistantContext,
   customerIdAttributesGroup,
   customerIdKey,
   domainUseridAttributesGroup,
   RETIRED_ATTRIBUTE_GROUPS,
   RETIRED_INTERVENTIONS,
+  RETIRED_SERVICES,
   travelIntentNudge,
 } from './signals-definitions'
 
@@ -212,6 +212,27 @@ async function publishAttributeGroup(group: typeof customerIdAttributesGroup | t
   })
 }
 
+async function unpublishAndDeleteService(name: string): Promise<void> {
+  await registryRequest('POST', 'engines/unpublish', {
+    services: [{ name }],
+  }).catch((error) => {
+    if (
+      error instanceof SignalsRegistryError &&
+      (isIgnorableMissing(error) || error.status === 400 || error.status === 409)
+    ) {
+      return {}
+    }
+    throw error
+  })
+
+  await registryRequest('DELETE', `registry/services/${name}`).catch((error) => {
+    if (error instanceof SignalsRegistryError && (isIgnorableMissing(error) || error.status === 405)) {
+      return {}
+    }
+    throw error
+  })
+}
+
 async function unpublishAndDelete(
   kind: 'attribute_groups' | 'interventions',
   name: string,
@@ -289,18 +310,6 @@ export async function publishSignalsRegistry(): Promise<PublishStepResult[]> {
       },
     },
     {
-      type: 'service',
-      name: benefitsAgentContextService.name,
-      run: () =>
-        createOrReplacePublished(
-          'services',
-          benefitsAgentContextService,
-          `services/${benefitsAgentContextService.name}`,
-          { services: [{ name: benefitsAgentContextService.name }] },
-          { services: [{ name: benefitsAgentContextService.name }] },
-        ).then(() => undefined),
-    },
-    {
       type: 'intervention',
       name: travelIntentNudge.name,
       run: () =>
@@ -330,6 +339,11 @@ export async function publishSignalsRegistry(): Promise<PublishStepResult[]> {
           })
           .then(() => undefined),
     },
+    ...RETIRED_SERVICES.map((service) => ({
+      type: 'service_delete',
+      name: service.name,
+      run: () => unpublishAndDeleteService(service.name),
+    })),
     ...RETIRED_ATTRIBUTE_GROUPS.map((group) => ({
       type: 'attribute_group_delete',
       name: group.name,

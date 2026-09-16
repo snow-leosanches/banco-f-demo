@@ -9,7 +9,6 @@ import { ANONYMOUS_ATTRIBUTE_GROUP, IDENTIFIED_ATTRIBUTE_GROUP } from './signals
 
 export const SIGNALS_OWNER = 'leonel.sanches@snowplowanalytics.com'
 export const SIGNALS_VENDOR = 'com.bancofalabella'
-export const SIGNALS_SERVICE_NAME = 'benefits_agent_context_v1'
 export const SIGNALS_AGENTIC_CONTEXT_NAME = 'benefits_assistant_context'
 export const SIGNALS_INTERVENTION_NAME = 'banco_falabella_travel_intent_nudge'
 
@@ -206,14 +205,6 @@ export const benefitsAssistantContext = {
   version: 1,
 }
 
-export const benefitsAgentContextService = {
-  attribute_groups: [{ name: IDENTIFIED_ATTRIBUTE_GROUP.name, version: IDENTIFIED_ATTRIBUTE_GROUP.version }],
-  description: 'Context package for the Banco F Benefits assistant (Signals POC)',
-  is_published: true,
-  name: SIGNALS_SERVICE_NAME,
-  owner: SIGNALS_OWNER,
-}
-
 export const travelIntentNudge = {
   criteria: {
     attribute: `${ANONYMOUS_ATTRIBUTE_GROUP.name}:travel_pages_last_10m`,
@@ -236,6 +227,11 @@ export const RETIRED_ATTRIBUTE_GROUPS = [
 
 export const RETIRED_INTERVENTIONS = [{ name: 'travel_intent_nudge', version: 1 }] as const
 
+export const RETIRED_SERVICES = [
+  { name: 'benefits_agent_context_v1' },
+  { name: 'banco_falabella_agent_context' },
+] as const
+
 export const signalsRegistryCatalog = [
   { type: 'attribute_key', name: customerIdKey.name, version: null },
   {
@@ -251,6 +247,5 @@ export const signalsRegistryCatalog = [
     attributeKey: 'domain_userid',
   },
   { type: 'event_log', name: benefitsAssistantContext.name, version: benefitsAssistantContext.version },
-  { type: 'service', name: benefitsAgentContextService.name, version: null },
   { type: 'intervention', name: travelIntentNudge.name, version: travelIntentNudge.version },
 ] as const

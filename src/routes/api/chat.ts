@@ -28,6 +28,7 @@ const GUEST_CUSTOMER: Customer = {
 interface ChatRequestBody {
   message: string
   domainSessionId: string | null
+  domainUserId: string | null
   signalsEnabled: boolean
   clientBehavior: ClientBehaviorSnapshot
   customer: Customer | null
@@ -44,9 +45,10 @@ export const Route = createFileRoute('/api/chat')({
         const signals = body.signalsEnabled && customer.customerId !== GUEST_CUSTOMER.customerId
           ? await getBenefitsSignalsContext({
               customerId: customer.customerId,
+              domainUserId: body.domainUserId ?? null,
               domainSessionId: body.domainSessionId,
             })
-          : { serviceAttributes: null, agenticNarrative: null, available: false }
+          : { groupAttributes: null, agenticNarrative: null, available: false }
 
         const context = body.signalsEnabled
           ? assembleContext({ customer, signals, clientBehavior: body.clientBehavior })

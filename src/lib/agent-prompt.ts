@@ -25,23 +25,21 @@ export interface AssembledContext {
 
 /**
  * Builds the "money shot" context block. Prefers real Signals data
- * (service attributes + agentic context narrative); falls back to a
+ * (attribute groups + agentic context narrative); falls back to a
  * deterministic local approximation built from client-observed behavior so
  * the demo works even before the Console/Signals org is finalized.
  */
 export function assembleContext(params: {
   customer: Customer
-  signals: { serviceAttributes: Record<string, unknown> | null; agenticNarrative: string | null; available: boolean }
+  signals: { groupAttributes: Record<string, unknown> | null; agenticNarrative: string | null; available: boolean }
   clientBehavior: ClientBehaviorSnapshot
 }): AssembledContext {
   const { customer, signals, clientBehavior } = params
 
   if (signals.available) {
     const parts: string[] = []
-    if (signals.serviceAttributes) {
-      parts.push(
-        '## Atributos de Signals (benefits_agent_context_v1)\n' + JSON.stringify(signals.serviceAttributes, null, 2),
-      )
+    if (signals.groupAttributes) {
+      parts.push('## Atributos de Signals\n' + JSON.stringify(signals.groupAttributes, null, 2))
     }
     if (signals.agenticNarrative) {
       parts.push('## Contexto agentivo (narrativa de sesión)\n' + signals.agenticNarrative)
