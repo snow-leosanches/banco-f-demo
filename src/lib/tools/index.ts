@@ -12,14 +12,18 @@ export const agentTools = {
 }
 
 export function agentToolsContext(params: SignalsToolContext) {
+  const signalsContext = {
+    customerId: params.customerId,
+    domainUserId: params.domainUserId,
+    signalsEnabled: params.signalsEnabled,
+    clientBehavior: params.clientBehavior,
+  }
   return {
     ...customerToolsContext(params.customerId),
-    getSignalsAttributes: {
-      customerId: params.customerId,
-      domainUserId: params.domainUserId,
-      signalsEnabled: params.signalsEnabled,
-      clientBehavior: params.clientBehavior,
-    },
+    getSignalsAttributes: signalsContext,
+    getRecentBenefitVisits: signalsContext,
+    suggestNextBenefits: signalsContext,
+    suggestNextMerchants: signalsContext,
   }
 }
 

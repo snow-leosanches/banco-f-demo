@@ -9,7 +9,12 @@ import { trackAssistantMessageSent } from '@/lib/snowplow-config'
 import { PaltaMark } from '@/components/Logo'
 import { cn } from '@/lib/utils'
 
-const SUGGESTED_PROMPT = '¿Qué beneficios tengo este mes?'
+const SUGGESTED_PROMPTS = [
+  '¿Qué beneficios tengo este mes?',
+  '¿Qué beneficios visité recién?',
+  '¿Qué beneficio me conviene ver ahora?',
+  '¿Qué comercios me convienen ahora?',
+]
 
 export function AssistantSidebar() {
   const { isOpen, closeAssistant, messages, isSending, sendMessage } = useAssistant()
@@ -65,15 +70,20 @@ export function AssistantSidebar() {
         {messages.length === 0 && (
           <div className="rounded-[16px] bg-mint p-4">
             <p className="text-small text-text-secondary">
-              Pregúntame por tus beneficios, tu cuenta o tus tarjetas CMR.
+              Pregúntame por tus beneficios, lo que miraste recién, qué te conviene ver ahora o en qué comercios.
             </p>
-            <button
-              onClick={() => submit(SUGGESTED_PROMPT)}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-secondary px-4 py-2 text-small font-medium text-secondary hover:bg-white"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {SUGGESTED_PROMPT}
-            </button>
+            <div className="mt-3 flex flex-col items-start gap-2">
+              {SUGGESTED_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => submit(prompt)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-secondary px-4 py-2 text-left text-small font-medium text-secondary hover:bg-white"
+                >
+                  <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                  {prompt}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

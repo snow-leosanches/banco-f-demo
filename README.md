@@ -43,19 +43,41 @@ Chat is `POST /api/chat` (`src/routes/api/chat.ts`). Tools live under `src/lib/t
 | --- | --- | --- |
 | **C0** informational | ¿Qué es un fondo mutuo? | `explainProduct` — glossary in `src/lib/product-knowledge.ts` (fondo mutuo, CMR, Fpuntos, cuenta, DAP, crédito de consumo, programa de beneficios) |
 | **C1** situational | ¿Dónde encuentro mis beneficios? | `findInApp` — screens in `src/lib/app-guide.ts` (`/beneficios`, `/cuenta`, chat FAB, `/login`) |
-| **C2** personalized | ¿Qué beneficios tengo este mes? | `listMyBenefits`, `getBenefitDetails` — entitlements in `src/lib/customer-benefits.ts`. `getSignalsAttributes` — this-visit + last-hour / 7-day Signals groups |
+| **C2** personalized | ¿Qué beneficios tengo este mes? | `listMyBenefits`, `getBenefitDetails` — entitlements in `src/lib/customer-benefits.ts`. `getRecentBenefitVisits` — last-hour catalog pages from Signals (`benefits_visited_last_1h`) or the local visit snapshot. `suggestNextBenefits` / `suggestNextMerchants` — ranks unused entitlements and unique merchants against those visits using `src/lib/benefits-catalog.ts`. `getSignalsAttributes` — raw this-visit + last-hour / 7-day Signals groups |
 | **C3** deep | ¿Por qué ahorro menos este mes? | `getMonthlyBalances`, `getSpendingBreakdown`, `getBenefitOptionHistory` — mocks in `src/lib/customer-savings.ts` (jul–sep 2026) |
 
 The system prompt (`src/lib/agent-prompt.ts`) maps those four classes to tools and forbids inventing amounts, merchants, definitions, or menus.
 
-Suggested questions (Spanish):
+Suggested questions (Spanish). The first two C0/C1/C3 lines are unchanged; the three C2 lines are the benefits loop and appear as chips in the Asistente empty state:
 
 - ¿Qué es un fondo mutuo?
 - ¿Dónde encuentro mis beneficios?
 - ¿Qué beneficios tengo este mes? *(same wording under each login)*
+- ¿Qué beneficios visité recién? *(same wording under each login)*
+- ¿Qué beneficio me conviene ver ahora? *(same wording under each login)*
+- ¿Qué comercios me convienen ahora? *(same wording under each login)*
 - ¿Por qué ahorro menos este mes? *(same wording under each login)*
 
-For the Signals treatment beat, log in as Camila, browse Viajes (TurBus, Lipigas), then ask the C2 benefits question with Signals on.
+### Benefits loop (C2)
+
+The marketing catalog on `/beneficios` is the full scrape in `src/lib/benefits-catalog.ts` (~210 live discounts). Browsing it still generates Signals `benefit_viewed` events for everyone. The agent never reads that catalog directly; it only sees what tools return.
+
+| Step | Question | Tool | Data |
+| --- | --- | --- | --- |
+| 1. What I have | ¿Qué beneficios tengo este mes? | `listMyBenefits` | Entitlements in `src/lib/customer-benefits.ts` (Diego 3, Camila 5, Valentina full catalog) |
+| 2. What I visited | ¿Qué beneficios visité recién? | `getRecentBenefitVisits` | Signals `benefits_visited_last_1h` / `merchants_visited_last_1h`, plus this-visit categories. Falls back to the local snapshot (detail-page ids recorded in the Asistente). Each visit is resolved against the catalog and flagged `entitled: true/false`. |
+| 3. What next | ¿Qué beneficio me conviene ver ahora? | `suggestNextBenefits` | Up to 3 **unused entitled** benefits, scored in `src/lib/benefit-recommendations.ts`: same category as a recent visit (+ catalog overlap), Bandit top-3, then stronger discount. Never suggests a benefit the login does not have. Also returns the merchant rollup below. |
+| 4. Which merchants | ¿Qué comercios me convienen ahora? | `suggestNextMerchants` | Same inputs, grouped by catalog `merchant`. Skips generic scrape names (`Restaurante`, `Beneficio…`). Boosts recurring merchants (`shell` / `tottus` for Camila) and Bandit ids. Never suggests a merchant without a vigente entitlement. |
+
+`suggestNextBenefits` also returns `categoryGaps` (a category they browsed with zero entitlements). For Diego that is the Viajes beat: he can open TurBus on the catalog, but the tool will not recommend it; the note tells the model to mention CMR signup instead.
+
+Demo beats with Signals on:
+
+1. **Camila** — open Sky Airline and Cinemark (Viajes she is not using yet), then ask the C2 questions. Step 3 and 4 should surface **TurBus** (entitled Viajes she has not opened). Recurring Shell / Tottus can follow if Viajes is already covered.
+2. **Diego** — open TurBus, then ask steps 3–4. Must **not** offer TurBus; suggest Copec / Burger King / Tottus and the CMR gap.
+3. **Valentina** — open one Viajes card, then ask steps 3–4. She is entitled to the full catalog, so the ranker picks other unused Viajes brands with stronger discounts (not the generic `Restaurante` rows).
+
+The empty-state chips in the Asistente are those four C2 questions. For the older Signals treatment (prioritize what she already has), log in as Camila, browse Viajes (TurBus, Lipigas), then ask step 1.
 
 ## Signals registry publish
 

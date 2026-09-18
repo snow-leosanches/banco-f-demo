@@ -22,6 +22,8 @@ export const signalsToolContextSchema = z.object({
     lastMerchantViewed: z.string().nullable(),
     benefitViewsLast10m: z.number(),
     travelPagesLast10m: z.number(),
+    benefitsVisitedLast1h: z.array(z.string()).default([]),
+    merchantsVisitedLast1h: z.array(z.string()).default([]),
   }),
 })
 
@@ -38,6 +40,8 @@ function localVisitAttributes(behavior: ClientBehaviorSnapshot) {
     last_merchant_viewed: behavior.lastMerchantViewed,
     benefit_views_last_10m: behavior.benefitViewsLast10m,
     travel_pages_last_10m: behavior.travelPagesLast10m,
+    benefits_visited_last_1h: behavior.benefitsVisitedLast1h,
+    merchants_visited_last_1h: behavior.merchantsVisitedLast1h,
   }
 }
 
@@ -46,7 +50,9 @@ function hasLocalVisit(behavior: ClientBehaviorSnapshot) {
     behavior.categoriesViewedLast30m.length > 0 ||
     behavior.lastMerchantViewed !== null ||
     behavior.benefitViewsLast10m > 0 ||
-    behavior.travelPagesLast10m > 0
+    behavior.travelPagesLast10m > 0 ||
+    behavior.benefitsVisitedLast1h.length > 0 ||
+    behavior.merchantsVisitedLast1h.length > 0
   )
 }
 

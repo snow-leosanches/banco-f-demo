@@ -18,6 +18,7 @@ const CTX_END = '__ENDCTX__'
 
 const TEN_MINUTES_MS = 10 * 60 * 1000
 const THIRTY_MINUTES_MS = 30 * 60 * 1000
+const ONE_HOUR_MS = 60 * 60 * 1000
 const TRAVEL_NUDGE_THRESHOLD = 3
 
 export interface ChatMessage {
@@ -30,6 +31,7 @@ export interface ChatMessage {
 interface BehaviorEvent {
   category: BenefitCategory
   merchant: string
+  benefitId?: string
   at: number
 }
 
@@ -41,7 +43,7 @@ interface AssistantContextValue {
   messages: ChatMessage[]
   isSending: boolean
   sendMessage: (text: string) => Promise<void>
-  recordBenefitView: (category: BenefitCategory, merchant?: string) => void
+  recordBenefitView: (category: BenefitCategory, merchant?: string, benefitId?: string) => void
   orbVisible: boolean
   dismissOrb: () => void
 }
@@ -76,8 +78,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   }, [customerId])
 
   const recordBenefitView = useCallback(
-    (category: BenefitCategory, merchant: string = '(catálogo)') => {
-      behaviorRef.current.push({ category, merchant, at: Date.now() })
+    (category: BenefitCategory, merchant: string = '(catálogo)', benefitId?: string) => {
+      behaviorRef.current.push({ category, merchant, benefitId, at: Date.now() })
       if (category === 'Viajes') maybeShowTravelOrb()
     },
     [maybeShowTravelOrb],
@@ -88,6 +90,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     const id = customerId
     if (id !== lastCustomerIdRef.current) {
       lastCustomerIdRef.current = id
+      behaviorRef.current = []
       orbShownRef.current = false
       setOrbVisible(false)
       clearInterventionTriggers()
@@ -114,17 +117,26 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     const now = Date.now()
     const last30m = behaviorRef.current.filter((e) => now - e.at <= THIRTY_MINUTES_MS)
     const last10m = behaviorRef.current.filter((e) => now - e.at <= TEN_MINUTES_MS)
+    const last1h = behaviorRef.current.filter((e) => now - e.at <= ONE_HOUR_MS)
     const categoriesViewedLast30m = Array.from(new Set(last30m.map((e) => e.category)))
     const lastMerchantViewed = behaviorRef.current.length
       ? behaviorRef.current[behaviorRef.current.length - 1].merchant
       : null
     const travelPagesLast10m = last10m.filter((e) => e.category === 'Viajes').length
+    const benefitsVisitedLast1h = Array.from(
+      new Set(last1h.map((e) => e.benefitId).filter((id): id is string => Boolean(id))),
+    )
+    const merchantsVisitedLast1h = Array.from(
+      new Set(last1h.map((e) => e.merchant).filter((merchant) => merchant && merchant !== '(catálogo)')),
+    )
 
     return {
       categoriesViewedLast30m,
-      lastMerchantViewed,
+      lastMerchantViewed: lastMerchantViewed === '(catálogo)' ? null : lastMerchantViewed,
       benefitViewsLast10m: last10m.length,
       travelPagesLast10m,
+      benefitsVisitedLast1h,
+      merchantsVisitedLast1h,
     }
   }, [])
 

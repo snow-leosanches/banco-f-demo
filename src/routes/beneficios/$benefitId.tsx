@@ -29,7 +29,7 @@ function BenefitDetail() {
       category: benefit.category,
       discountPct: benefit.discountPct,
     })
-    recordBenefitView(benefit.category, benefit.merchant)
+    recordBenefitView(benefit.category, benefit.merchant, benefit.id)
   }, [benefit, recordBenefitView])
 
   return (
