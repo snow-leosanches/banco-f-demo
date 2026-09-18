@@ -123,8 +123,9 @@ function IdentifiedAttributeBlock({
       </div>
       <p className="mb-3 font-mono text-[11px] text-text-secondary">{shortenId(identifier)}</p>
       <p className="mb-3 text-[11px] leading-relaxed text-text-secondary">
-        Seven-day rolling memory after login. Stream attributes start at publish — no backfill. Average
-        engaged session is (pings × 10s) / sessions; pings start after 20s so short visits undercount.
+        Seven-day ping/session volume after login; benefits and merchants unique lists roll on a 1-hour
+        window so repeat demos reset. Stream attributes start at publish — no backfill. Average engaged
+        session is (pings × 10s) / sessions; pings start after 20s so short visits undercount.
       </p>
 
       {locked ? (
@@ -134,12 +135,12 @@ function IdentifiedAttributeBlock({
       ) : (
         <div className="space-y-3">
           <div>
-            <span className="mb-1.5 block text-text-secondary">Benefits visited (7d)</span>
-            <CategoryPills values={benefitLabels(attributes?.benefits_visited_last_7d)} />
+            <span className="mb-1.5 block text-text-secondary">Benefits visited (1h)</span>
+            <CategoryPills values={benefitLabels(attributes?.benefits_visited_last_1h)} />
           </div>
           <div>
-            <span className="mb-1.5 block text-text-secondary">Merchants visited (7d)</span>
-            <CategoryPills values={attributes?.merchants_visited_last_7d} />
+            <span className="mb-1.5 block text-text-secondary">Merchants visited (1h)</span>
+            <CategoryPills values={attributes?.merchants_visited_last_1h} />
           </div>
           <Row label="Page pings (7d)" value={attributes?.page_pings_last_7d} />
           <Row label="Sessions (7d)" value={attributes?.sessions_last_7d} />

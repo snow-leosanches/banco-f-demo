@@ -2,7 +2,7 @@
  * Stream attribute groups shown in the presenter Signals panel.
  *
  * domain_userid: this-visit intent (short windows, cookie identity)
- * customer_id: this-customer memory (7-day rolling window, after login)
+ * customer_id: this-customer memory after login (1h unique lists, 7d ping/session volume)
  */
 export const PAGE_PING_HEARTBEAT_SECONDS = 10
 
@@ -14,8 +14,8 @@ export const SESSION_BEHAVIOR_ATTRIBUTES = [
 ] as const
 
 export const CUSTOMER_MEMORY_ATTRIBUTES = [
-  'benefits_visited_last_7d',
-  'merchants_visited_last_7d',
+  'benefits_visited_last_1h',
+  'merchants_visited_last_1h',
   'page_pings_last_7d',
   'sessions_last_7d',
 ] as const
@@ -29,7 +29,7 @@ export const ANONYMOUS_ATTRIBUTE_GROUP = {
 
 export const IDENTIFIED_ATTRIBUTE_GROUP = {
   name: 'banco_falabella_customer_id_attributes',
-  version: 2,
+  version: 3,
   attributeKey: 'customer_id',
   attributes: CUSTOMER_MEMORY_ATTRIBUTES,
 } as const
@@ -42,8 +42,8 @@ export interface SessionBehaviorAttributes {
 }
 
 export interface CustomerMemoryAttributes {
-  benefits_visited_last_7d?: string[]
-  merchants_visited_last_7d?: string[]
+  benefits_visited_last_1h?: string[]
+  merchants_visited_last_1h?: string[]
   page_pings_last_7d?: number
   sessions_last_7d?: number
 }
@@ -59,8 +59,8 @@ export function parseSessionBehavior(raw: Record<string, unknown>): SessionBehav
 
 export function parseCustomerMemory(raw: Record<string, unknown>): CustomerMemoryAttributes {
   return {
-    benefits_visited_last_7d: asStringList(raw.benefits_visited_last_7d),
-    merchants_visited_last_7d: asStringList(raw.merchants_visited_last_7d),
+    benefits_visited_last_1h: asStringList(raw.benefits_visited_last_1h),
+    merchants_visited_last_1h: asStringList(raw.merchants_visited_last_1h),
     page_pings_last_7d: asNumber(raw.page_pings_last_7d),
     sessions_last_7d: asNumber(raw.sessions_last_7d),
   }
@@ -79,8 +79,8 @@ export function hasSessionBehavior(attrs: SessionBehaviorAttributes | null): boo
 export function hasCustomerMemory(attrs: CustomerMemoryAttributes | null): boolean {
   if (!attrs) return false
   return (
-    (attrs.benefits_visited_last_7d?.length ?? 0) > 0 ||
-    (attrs.merchants_visited_last_7d?.length ?? 0) > 0 ||
+    (attrs.benefits_visited_last_1h?.length ?? 0) > 0 ||
+    (attrs.merchants_visited_last_1h?.length ?? 0) > 0 ||
     typeof attrs.page_pings_last_7d === 'number' ||
     typeof attrs.sessions_last_7d === 'number'
   )

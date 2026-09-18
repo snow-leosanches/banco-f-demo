@@ -76,7 +76,7 @@
     "streamAttributeGroup": {
       "name": "banco_falabella_customer_id_attributes",
       "key": "customer_id",
-      "attributes": ["benefits_visited_last_7d", "merchants_visited_last_7d", "page_pings_last_7d", "sessions_last_7d"]
+      "attributes": ["benefits_visited_last_1h", "merchants_visited_last_1h", "page_pings_last_7d", "sessions_last_7d"]
     },
     "warehouseAttributeGroup": {
       "name": "customer_scores",

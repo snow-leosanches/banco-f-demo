@@ -37,13 +37,13 @@ Camila is the money-shot identity from the Banco Falabella deck (San Miguel, Ban
 
 ## Agent tools
 
-Chat is `POST /api/chat` (`src/routes/api/chat.ts`). Tools live under `src/lib/tools/`. Customer id is passed as tool context only on C2/C3 tools. C0 and C1 are the same for every login (no assembly).
+Chat is `POST /api/chat` (`src/routes/api/chat.ts`). Tools live under `src/lib/tools/`. Customer id (and Signals ids) are passed as tool context only on C2/C3 tools. C0 and C1 are the same for every login (no assembly).
 
 | Class | Example | Tools |
 | --- | --- | --- |
 | **C0** informational | ¿Qué es un fondo mutuo? | `explainProduct` — glossary in `src/lib/product-knowledge.ts` (fondo mutuo, CMR, Fpuntos, cuenta, DAP, crédito de consumo, programa de beneficios) |
 | **C1** situational | ¿Dónde encuentro mis beneficios? | `findInApp` — screens in `src/lib/app-guide.ts` (`/beneficios`, `/cuenta`, chat FAB, `/login`) |
-| **C2** personalized | ¿Qué beneficios tengo este mes? | `listMyBenefits`, `getBenefitDetails` — entitlements in `src/lib/customer-benefits.ts` |
+| **C2** personalized | ¿Qué beneficios tengo este mes? | `listMyBenefits`, `getBenefitDetails` — entitlements in `src/lib/customer-benefits.ts`. `getSignalsAttributes` — this-visit + last-hour / 7-day Signals groups |
 | **C3** deep | ¿Por qué ahorro menos este mes? | `getMonthlyBalances`, `getSpendingBreakdown`, `getBenefitOptionHistory` — mocks in `src/lib/customer-savings.ts` (jul–sep 2026) |
 
 The system prompt (`src/lib/agent-prompt.ts`) maps those four classes to tools and forbids inventing amounts, merchants, definitions, or menus.
@@ -72,6 +72,6 @@ Run it only when the registry definitions change (or the first time you point th
 1. Start the app (`npm run dev`)
 2. `npm run signals:publish`
 
-Definitions live in `src/lib/signals-definitions.ts`. Attribute groups are `banco_falabella_domain_userid_attributes` (this-visit intent, key `domain_userid`) and `banco_falabella_customer_id_attributes` (7-day customer memory, key `customer_id`). There is no Signals service: the panel and the Asistente both read those groups directly. The travel intervention is `banco_falabella_travel_intent_nudge` (`travel_pages_last_10m >= 3` on `domain_userid`; the in-app orb still only renders after login). The command POSTs to `/api/signals/registry` on the running app. Re-running it is safe: objects that already exist in Console are updated or skipped. The first publish after a rename also unpublishes and deletes retired names (`benefits_session_behavior`, `benefits_anonymous_behavior`, `travel_intent_nudge`, `benefits_agent_context_v1`, `banco_falabella_agent_context`).
+Definitions live in `src/lib/signals-definitions.ts`. Attribute groups are `banco_falabella_domain_userid_attributes` (this-visit intent, key `domain_userid`) and `banco_falabella_customer_id_attributes` (last-hour benefits/merchants plus 7-day ping/session volume, key `customer_id`). There is no Signals service: the panel and the Asistente both read those groups directly. The travel intervention is `banco_falabella_travel_intent_nudge` (`travel_pages_last_10m >= 3` on `domain_userid`; the in-app orb still only renders after login). The command POSTs to `/api/signals/registry` on the running app. Re-running it is safe: objects that already exist in Console are updated or skipped. The first publish after a rename also unpublishes and deletes retired names (`benefits_session_behavior`, `benefits_anonymous_behavior`, `travel_intent_nudge`, `benefits_agent_context_v1`, `banco_falabella_agent_context`).
 
 On Vercel, set `SIGNALS_PUBLISH_SECRET` and POST with `Authorization: Bearer <secret>`. Production rejects publish requests without that secret.

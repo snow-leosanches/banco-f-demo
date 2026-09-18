@@ -9,7 +9,7 @@ import { streamText, isStepCount } from 'ai'
 import { type Customer } from '@/lib/config'
 import { getBenefitsSignalsContext } from '@/lib/signals-server'
 import { assembleContext, buildSystemPrompt, type ClientBehaviorSnapshot } from '@/lib/agent-prompt'
-import { agentTools, customerToolsContext } from '@/lib/tools'
+import { agentTools, agentToolsContext } from '@/lib/tools'
 import { GUEST_USER_ID } from '@/lib/user-id'
 
 // Sentinel wrapping the context metadata sent as the first stream chunk, so
@@ -52,7 +52,7 @@ export const Route = createFileRoute('/api/chat')({
 
         const context = body.signalsEnabled
           ? assembleContext({ customer, signals, clientBehavior: body.clientBehavior })
-          : ({ contextBlock: null, contextSource: 'none' } as const)
+          : ({ contextBlock: null, contextSource: 'none', agenticNarrative: null } as const)
 
         const systemPrompt = buildSystemPrompt(context)
 
@@ -61,7 +61,12 @@ export const Route = createFileRoute('/api/chat')({
           system: systemPrompt,
           prompt: body.message,
           tools: agentTools,
-          toolsContext: customerToolsContext(customer.customerId),
+          toolsContext: agentToolsContext({
+            customerId: customer.customerId,
+            domainUserId: body.domainUserId ?? null,
+            signalsEnabled: body.signalsEnabled,
+            clientBehavior: body.clientBehavior,
+          }),
           stopWhen: isStepCount(8),
           onError: ({ error }) => {
             console.error('[api/chat] streamText error', error)

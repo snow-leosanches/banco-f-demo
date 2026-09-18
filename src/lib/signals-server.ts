@@ -76,6 +76,46 @@ function fetchGroupAttributes(signals: Signals, group: StreamGroup, identifier: 
   })
 }
 
+function asAttributeRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const rec = value as Record<string, unknown>
+  if (rec.attributes && typeof rec.attributes === 'object' && !Array.isArray(rec.attributes)) {
+    return rec.attributes as Record<string, unknown>
+  }
+  return rec
+}
+
+export interface SignalsAttributeGroups {
+  visit: Record<string, unknown> | null
+  memory: Record<string, unknown> | null
+  reachedSignals: boolean
+}
+
+export async function getSignalsAttributeGroups(params: {
+  customerId: string | null
+  domainUserId: string | null
+}): Promise<SignalsAttributeGroups> {
+  const signals = getClient()
+  if (!signals) {
+    return { visit: null, memory: null, reachedSignals: false }
+  }
+
+  const [memoryRaw, visitRaw] = await Promise.all([
+    params.customerId && isGuid(params.customerId)
+      ? fetchGroupAttributes(signals, IDENTIFIED_ATTRIBUTE_GROUP, params.customerId).catch(() => null)
+      : Promise.resolve(null),
+    params.domainUserId
+      ? fetchGroupAttributes(signals, ANONYMOUS_ATTRIBUTE_GROUP, params.domainUserId).catch(() => null)
+      : Promise.resolve(null),
+  ])
+
+  return {
+    memory: memoryRaw ? asAttributeRecord(memoryRaw) : null,
+    visit: visitRaw ? asAttributeRecord(visitRaw) : null,
+    reachedSignals: true,
+  }
+}
+
 export interface BenefitsSignalsContext {
   /** Raw values from the two stream attribute groups, keyed by group name. */
   groupAttributes: Record<string, unknown> | null
@@ -95,11 +135,11 @@ export async function getBenefitsSignalsContext(params: {
     return { groupAttributes: null, agenticNarrative: null, available: false }
   }
 
-  const [identifiedAttributes, visitAttributes, agenticNarrative] = await Promise.all([
-    fetchGroupAttributes(signals, IDENTIFIED_ATTRIBUTE_GROUP, params.customerId).catch(() => null),
-    params.domainUserId
-      ? fetchGroupAttributes(signals, ANONYMOUS_ATTRIBUTE_GROUP, params.domainUserId).catch(() => null)
-      : Promise.resolve(null),
+  const [groups, agenticNarrative] = await Promise.all([
+    getSignalsAttributeGroups({
+      customerId: params.customerId,
+      domainUserId: params.domainUserId,
+    }),
     params.domainSessionId
       ? signals
           .getAgenticContext({
@@ -112,10 +152,10 @@ export async function getBenefitsSignalsContext(params: {
   ])
 
   const groupAttributes =
-    identifiedAttributes || visitAttributes
+    groups.visit || groups.memory
       ? {
-          ...(identifiedAttributes ? { [IDENTIFIED_ATTRIBUTE_GROUP.name]: identifiedAttributes } : {}),
-          ...(visitAttributes ? { [ANONYMOUS_ATTRIBUTE_GROUP.name]: visitAttributes } : {}),
+          ...(groups.memory ? { [IDENTIFIED_ATTRIBUTE_GROUP.name]: groups.memory } : {}),
+          ...(groups.visit ? { [ANONYMOUS_ATTRIBUTE_GROUP.name]: groups.visit } : {}),
         }
       : null
 

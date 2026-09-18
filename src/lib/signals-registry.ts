@@ -339,6 +339,24 @@ export async function publishSignalsRegistry(): Promise<PublishStepResult[]> {
           })
           .then(() => undefined),
     },
+    {
+      type: 'attribute_group_delete',
+      name: `${customerIdAttributesGroup.name}:2`,
+      run: () =>
+        registryRequest('POST', 'engines/unpublish', {
+          attribute_groups: [{ name: customerIdAttributesGroup.name, version: 2 }],
+        })
+          .catch((error) => {
+            if (
+              error instanceof SignalsRegistryError &&
+              (isIgnorableMissing(error) || error.status === 400)
+            ) {
+              return {}
+            }
+            throw error
+          })
+          .then(() => undefined),
+    },
     ...RETIRED_SERVICES.map((service) => ({
       type: 'service_delete',
       name: service.name,
