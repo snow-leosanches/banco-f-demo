@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 
-import { benefits, type BenefitCategory } from '@/lib/config'
+import { benefits, formatBenefitOffer, type BenefitCategory } from '@/lib/config'
 import { useAssistant } from '@/contexts/assistant-context'
 import { useUser } from '@/contexts/user-context'
 import { trackBenefitCategoryFiltered } from '@/lib/snowplow-config'
@@ -59,7 +59,7 @@ function Beneficios() {
                   : 'border-border bg-surface text-text hover:bg-mint',
               )}
             >
-              {category}
+              {category === 'Todos' ? `Todos (${benefits.length})` : category}
             </button>
           ))}
         </div>
@@ -72,10 +72,16 @@ function Beneficios() {
               params={{ benefitId: benefit.id }}
               className="overflow-hidden rounded-[24px] bg-surface shadow-sm transition-shadow hover:shadow-md"
             >
-              <div className={cn('flex h-40 flex-col justify-end bg-gradient-to-br p-5 text-white', CATEGORY_GRADIENT[benefit.category])}>
-                <p className="text-small text-white/80">{benefit.category}</p>
-                <p className="font-heading text-[28px] font-medium leading-none">{benefit.discountPct}% dcto</p>
-                <p className="mt-1 text-[12px] uppercase tracking-wide text-white/80">Sin tope</p>
+              <div className="relative h-40 overflow-hidden">
+                {benefit.image ? (
+                  <img src={benefit.image} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className={cn('h-full w-full bg-gradient-to-br', CATEGORY_GRADIENT[benefit.category])} />
+                )}
+                <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/75 via-black/25 to-transparent p-5 text-white">
+                  <p className="text-small text-white/80">{benefit.category}</p>
+                  <p className="font-heading text-[28px] font-medium leading-none">{formatBenefitOffer(benefit)}</p>
+                </div>
               </div>
               <div className="p-5">
                 <h3 className="font-heading text-h3 text-text">{benefit.merchant}</h3>

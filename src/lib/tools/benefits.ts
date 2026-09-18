@@ -13,6 +13,7 @@ function summarize(benefit: Benefit) {
     merchant: benefit.merchant,
     category: benefit.category,
     discountPct: benefit.discountPct,
+    ...(benefit.offerLabel ? { offerLabel: benefit.offerLabel } : {}),
     description: benefit.description,
     ...(benefit.terms ? { terms: benefit.terms } : {}),
   }

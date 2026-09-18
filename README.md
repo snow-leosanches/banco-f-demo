@@ -29,7 +29,7 @@ Use **Clientes conocidos** on `/login`. The marketing catalog on `/beneficios` s
 | --- | --- | --- | --- |
 | **Diego Soto** | Sin CMR | Copec, Burger King, Tottus (no Viajes). Travel nudge offers CMR signup. | Salary drop: $920.000 in jul/ago → **$680.000** in sep. Spend is flat. |
 | **Camila Rojas** | Lover | TurBus, Lipigas, Dunkin, Shell, Tottus. Travel nudge cites the CMR TurBus discount. | Same $780.000 salary. Spend jumps **$628.000 → $1.048.000** (playa + asado). |
-| **Valentina Pérez** | Elite | Full catalog (12 benefits). Travel nudge cites the CMR TurBus discount. | She switched CMR from cash discount to Fpuntos on 4 sep. Spend is flat; cash savings drop. |
+| **Valentina Pérez** | Elite | Full catalog (~210 live discounts). Travel nudge cites the CMR TurBus discount. | She switched CMR from cash discount to Fpuntos on 4 sep. Spend is flat; cash savings drop. |
 
 Guest, manual, and random logins reuse Diego's entitlements and savings snapshot.
 

@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
 import { ArrowLeft } from 'lucide-react'
 
-import { getBenefitById } from '@/lib/config'
+import { formatBenefitOffer, getBenefitById } from '@/lib/config'
 import { useAssistant } from '@/contexts/assistant-context'
 import { trackBenefitViewed } from '@/lib/snowplow-config'
 
@@ -48,9 +48,12 @@ function BenefitDetail() {
       <div className="mx-auto max-w-page px-6 py-10 lg:px-24">
         <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="rounded-[24px] bg-surface p-8 shadow-sm">
-            <p className="text-small text-text-secondary">Hasta</p>
-            <p className="font-heading text-[48px] font-medium leading-none text-secondary">{benefit.discountPct}% dcto</p>
-            <p className="mt-2 text-small uppercase tracking-wide text-text-secondary">Sin tope · Exclusivo con tus tarjetas</p>
+            {benefit.image ? (
+              <img src={benefit.image} alt="" className="mb-6 h-48 w-full rounded-[16px] object-cover" />
+            ) : null}
+            <p className="text-small text-text-secondary">Oferta</p>
+            <p className="font-heading text-[48px] font-medium leading-none text-secondary">{formatBenefitOffer(benefit)}</p>
+            <p className="mt-2 text-small uppercase tracking-wide text-text-secondary">Exclusivo con tus tarjetas</p>
             <p className="mt-6 text-body text-text">{benefit.description}</p>
             <p className="mt-6 border-t border-border pt-4 text-small text-text-secondary">
               <span className="font-semibold text-text">Condiciones: </span>

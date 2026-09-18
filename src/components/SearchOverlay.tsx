@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Search, X } from 'lucide-react'
 
-import { benefits } from '@/lib/config'
+import { benefits, formatBenefitOffer } from '@/lib/config'
 
 export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('')
@@ -53,7 +53,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                   <span className="font-medium text-text">{b.merchant}</span>
                   <span className="ml-2 text-text-secondary">{b.category}</span>
                 </span>
-                <span className="font-semibold text-secondary">{b.discountPct}% dcto.</span>
+                <span className="font-semibold text-secondary">{formatBenefitOffer(b)}</span>
               </Link>
             </li>
           ))}

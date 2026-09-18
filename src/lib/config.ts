@@ -1,3 +1,4 @@
+import { scrapedBenefits } from './benefits-catalog'
 import { CAMILA_USER_ID, DIEGO_USER_ID, VALENTINA_USER_ID } from './user-id'
 
 export interface MenuItem {
@@ -359,28 +360,19 @@ export interface Benefit {
   merchant: string
   category: BenefitCategory
   discountPct: number
+  offerLabel?: string
   description: string
   terms: string
+  image?: string
 }
 
-export const benefits: Benefit[] = [
-  // Viajes
-  { id: 'turbus', merchant: 'TurBus', category: 'Viajes', discountPct: 20, description: 'Descuento en pasajes interurbanos comprando con tu tarjeta CMR.', terms: 'Válido de lunes a jueves. No acumulable con otras promociones.' },
-  { id: 'sky-airline', merchant: 'Sky Airline', category: 'Viajes', discountPct: 12, description: 'Ahorra en vuelos nacionales pagando en cuotas CMR.', terms: 'Aplica a tarifas Basic y Light. Sujeto a disponibilidad.' },
-  { id: 'hoteles-decameron', merchant: 'Decameron Hoteles', category: 'Viajes', discountPct: 15, description: 'Descuento en estadías dentro de Chile.', terms: 'Reserva anticipada de al menos 7 días.' },
-  // Combustible
-  { id: 'lipigas', merchant: 'Lipigas', category: 'Combustible', discountPct: 8, description: 'Descuento en balones y despacho a domicilio.', terms: 'Aplica en compras sobre $10.000.' },
-  { id: 'shell', merchant: 'Shell', category: 'Combustible', discountPct: 10, description: 'Descuento por litro pagando con CMR en estaciones adheridas.', terms: 'Tope de 40 litros por transacción.' },
-  { id: 'copec', merchant: 'Copec', category: 'Combustible', discountPct: 6, description: 'Puntos Fpuntos duplicados en carga de combustible.', terms: 'Solo estaciones Copec participantes.' },
-  // Restaurantes
-  { id: 'dunkin', merchant: 'Dunkin', category: 'Restaurantes', discountPct: 25, description: 'Descuento en combos seleccionados.', terms: 'Válido en locales adheridos, no incluye delivery.' },
-  { id: 'burger-king', merchant: 'Burger King', category: 'Restaurantes', discountPct: 15, description: '2x1 en hamburguesas clásicas los martes.', terms: 'Un beneficio por cuenta CMR al día.' },
-  { id: 'starbucks', merchant: 'Starbucks', category: 'Restaurantes', discountPct: 10, description: 'Descuento en bebidas de temporada.', terms: 'No aplica a mercancía.' },
-  // Retail
-  { id: 'tottus', merchant: 'Tottus', category: 'Retail', discountPct: 12, description: 'Descuento en supermercado pagando en cuotas CMR.', terms: 'Aplica a compras sobre $20.000.' },
-  { id: 'falabella-retail', merchant: 'Falabella.com', category: 'Retail', discountPct: 18, description: 'Descuento exclusivo CMR en tienda online.', terms: 'No acumulable con Cyber ofertas.' },
-  { id: 'sodimac', merchant: 'Sodimac', category: 'Retail', discountPct: 10, description: 'Descuento en herramientas y jardín.', terms: 'Excluye productos en liquidación.' },
-]
+export const benefits: Benefit[] = scrapedBenefits as Benefit[]
+
+export function formatBenefitOffer(benefit: Benefit): string {
+  if (benefit.offerLabel) return benefit.offerLabel
+  if (benefit.discountPct > 0) return `${benefit.discountPct}% dcto`
+  return 'Beneficio'
+}
 
 export function getBenefitsByCategory(category: BenefitCategory): Benefit[] {
   return benefits.filter((b) => b.category === category)
