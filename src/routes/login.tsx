@@ -3,7 +3,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { faker } from '@faker-js/faker/locale/es'
 import { useUser, type LoginDetails } from '@/contexts/user-context'
 import { CMR_TIERS, COMUNAS, demoPhone, knownCustomers, type KnownCustomer } from '@/lib/known-customers'
-import { resetSnowplowIdentity } from '@/lib/snowplow-config'
+import { resetSnowplowIdentity, trackCustomerIdentification } from '@/lib/snowplow-config'
 import { getManualLoginUserId } from '@/lib/user-id'
 
 type LoginSearch = {
@@ -31,6 +31,10 @@ function LoginPage() {
 
   const identify = (details: LoginDetails) => {
     login(details)
+    trackCustomerIdentification({
+      email: details.email,
+      phone: details.phone ?? null,
+    })
     redirectAfterLogin()
   }
 
@@ -50,7 +54,6 @@ function LoginPage() {
       email,
       userId,
       firstName: email.split('@')[0] || 'Cliente',
-      customerId: userId,
       comuna: 'Santiago',
     })
   }
@@ -66,7 +69,6 @@ function LoginPage() {
       name,
       firstName: name.split(' ')[0],
       phone,
-      customerId: userId,
       cmrTier: faker.helpers.arrayElement(CMR_TIERS),
       comuna: faker.helpers.arrayElement([...COMUNAS]),
     })
@@ -79,7 +81,6 @@ function LoginPage() {
       name: customer.name,
       firstName: customer.firstName,
       phone: customer.phone,
-      customerId: customer.id,
       cmrTier: customer.cmrTier,
       comuna: customer.comuna,
     })

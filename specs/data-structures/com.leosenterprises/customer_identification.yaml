@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/snowplow/snowplow-cli/refs/heads/main/internal/validation/schema/data-structure.json
+
+apiVersion: v1
+resourceType: data-structure
+meta:
+  hidden: false
+  schemaType: event
+  customData: {}
+data:
+  $schema: http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#
+  self:
+    vendor: com.leosenterprises
+    name: customer_identification
+    format: jsonschema
+    version: 1-0-0
+  type: object
+  description: Structure for events that identify a user, with their user pieces
+  properties:
+    email:
+      description: Customer's email address
+      type:
+        - string
+        - "null"
+      maxLength: 256
+    phone:
+      description: The customer's phone
+      type:
+        - string
+        - "null"
+      maxLength: 16
+  additionalProperties: false

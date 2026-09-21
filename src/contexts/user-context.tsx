@@ -24,7 +24,6 @@ export type LoginDetails = {
   name?: string
   phone?: string
   firstName?: string
-  customerId: string
   cmrTier?: CmrTier | null
   comuna?: string
 }
@@ -39,13 +38,14 @@ interface UserContextValue {
 
 const UserContext = createContext<UserContextValue | null>(null)
 
+// customer_id always equals the Snowplow user_id — Signals joins the
+// customer entity and the tracker identity on the same GUID.
 function normalizeDemoUser(user: DemoUser): DemoUser & { userId: string; customerId: string } {
   const userId =
     toGuid(user.userId) ??
     toGuid(user.customerId) ??
     (user.email ? getManualLoginUserId(user.email) : crypto.randomUUID())
-  const customerId = toGuid(user.customerId) ?? userId
-  return { ...user, userId, customerId }
+  return { ...user, userId, customerId: userId }
 }
 
 function demoUserToCustomer(user: DemoUser): Customer | null {

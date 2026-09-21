@@ -13,10 +13,10 @@ Attached to every event via `addGlobalContexts` (see `setCustomerContext` in `sr
 | Field | Type | Example | Notes |
 |---|---|---|---|
 | `customer_id` | string | `cust-84213` | Signals stream/warehouse attribute key |
-| `cmr_tier` | string (enum) | `CMR Lover` | `CMR Verde` \| `CMR Lover` \| `CMR Elite` |
+| `cmr_tier` | string (enum), required | `CMR Lover` | `Sin CMR` \| `CMR Verde` \| `CMR Lover` \| `CMR Elite`. Always sent — `Sin CMR` covers customers without a CMR card (e.g. Diego) |
 | `comuna` | string | `San Miguel` | Home comuna, for the warehouse attribute group |
 
-Placeholder URI: `iglu:com.bancofalabella/customer/jsonschema/1-0-0`
+Placeholder URI: `iglu:com.bancofalabella/customer/jsonschema/1-0-1` (bumped from `1-0-0`: added the `Sin CMR` enum value so `cmr_tier` can stay a required field)
 
 ## Event: `benefit_viewed`
 

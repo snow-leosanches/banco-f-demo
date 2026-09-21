@@ -12,7 +12,7 @@ data:
     vendor: com.bancofalabella
     name: customer
     format: jsonschema
-    version: 1-0-0
+    version: 1-0-1
   type: object
   description: The signed-in Banco F customer. Attached to every event as a global context so Signals can key attribute groups on customer_id.
   properties:
@@ -21,9 +21,10 @@ data:
       type: string
       maxLength: 64
     cmr_tier:
-      description: CMR card tier
+      description: CMR card tier. "Sin CMR" means the customer has no CMR card.
       type: string
       enum:
+        - Sin CMR
         - CMR Verde
         - CMR Lover
         - CMR Elite

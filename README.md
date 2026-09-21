@@ -79,6 +79,46 @@ Demo beats with Signals on:
 
 The empty-state chips in the Asistente are those four C2 questions. For the older Signals treatment (prioritize what she already has), log in as Camila, browse Viajes (TurBus, Lipigas), then ask step 1.
 
+## Snowplow events
+
+Tracker setup, custom event functions, and the global `customer` entity all live in `src/lib/snowplow-config.ts` (collector `com-snplow-sales-aws-prod1.collector.snplow.net`, vendor `com.bancofalabella`). Full schema fields are in `specs/tracking-requirements.md` and `specs/data-structures/`.
+
+### Standard events
+
+| Event | Fired | Where |
+| --- | --- | --- |
+| `page_view` | On mount + every route change | `useSnowplowTracking` (`src/hooks/use-snowplow-tracking.ts`), wired app-wide |
+| `page_ping` | Every 10s while the tab has ≥20s of activity | `enableActivityTracking` in `initializeSnowplow` |
+| `link_click` | Any `<a>` click (content captured) | `enableLinkClickTracking` in `initializeSnowplow` |
+| Consent events (`consent_allow`, `consent_deny`, `consent_selected`, `cmp_visible`) | Cookie banner shown / accept / reject / customize | `ConsentManager.tsx`, via `EnhancedConsentPlugin` |
+| YouTube media events (play/pause/seek/% boundaries) | `/video` page, embedded player | `route/video/index.tsx`, via `YouTubeTrackingPlugin` (25/50/75/100% boundaries) |
+
+### Custom self-describing events (`com.bancofalabella`)
+
+| Event | Fired | Where | Payload |
+| --- | --- | --- | --- |
+| `benefit_viewed` | Opening a benefit detail page | `routes/beneficios/$benefitId.tsx` | `benefit_id`, `merchant`, `category` (`Viajes`\|`Restaurantes`\|`Combustible`\|`Retail`), `discount_pct` |
+| `benefit_category_filtered` | Selecting a category tab on `/beneficios` | `routes/beneficios/index.tsx` | `category` |
+| `product_page_viewed` | Viewing a product page (currently just Cuenta) | `routes/cuenta.tsx` | `product` (e.g. `cuenta_corriente`) |
+| `assistant_message_sent` | Submitting a question to the Asistente | `components/AssistantSidebar.tsx` | `channel` (`app`\|`whatsapp` — only `app` fires client-side; a WhatsApp deployment would track this server-side), `intent_guess` |
+| --- | --- | --- | --- |
+| `customer_identification` | Any login (automatic, manual, known customer) | `routes/login.tsx` | `email`, `phone` (nullable, maxLength 16) |
+
+
+### Global entity: `customer`
+
+Attached to every event via `addGlobalContexts` (`setCustomerContext`), so no per-call wiring is needed. Set on login, cleared on logout/reset.
+
+| Field | Example | Notes |
+| --- | --- | --- |
+| `customer_id` | `cust-84213` | Signals stream/warehouse attribute key |
+| `cmr_tier` | `CMR Lover` | `Sin CMR`\|`CMR Verde`\|`CMR Lover`\|`CMR Elite`, required — always sent (`Sin CMR` for customers without a CMR card) |
+| `comuna` | `San Miguel` | Home comuna |
+
+### Not yet wired
+
+Agent self-tracking (audit-trail events for the chat route, per `docs.snowplow.io/tutorials/agentic-self-tracking`) is not implemented — see `specs/tracking-requirements.md`.
+
 ## Signals registry publish
 
 `npm run signals:publish` is **not** part of everyday startup. It writes attribute keys, attribute groups, the intervention, and the agentic context to Snowplow Console. Those objects persist there.

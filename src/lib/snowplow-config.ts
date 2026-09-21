@@ -53,7 +53,7 @@ const SIGNALS_ENDPOINT = 'https://7f9742b834d7.signals.snowplowanalytics.com'
 const SCHEMA_VENDOR = 'com.bancofalabella'
 
 const SCHEMAS = {
-  customer: `iglu:${SCHEMA_VENDOR}/customer/jsonschema/1-0-0`,
+  customer: `iglu:${SCHEMA_VENDOR}/customer/jsonschema/1-0-1`,
   benefitViewed: `iglu:${SCHEMA_VENDOR}/benefit_viewed/jsonschema/1-0-0`,
   benefitCategoryFiltered: `iglu:${SCHEMA_VENDOR}/benefit_category_filtered/jsonschema/1-0-0`,
   productPageViewed: `iglu:${SCHEMA_VENDOR}/product_page_viewed/jsonschema/1-0-0`,
@@ -166,13 +166,13 @@ export function setCustomerContext(customer: Customer): void {
     }
     return
   }
-  clearGlobalContexts([SCHEMAS.customer])
+  clearGlobalContexts()
   addGlobalContexts([
     {
       schema: SCHEMAS.customer,
       data: {
         customer_id: customer.customerId,
-        ...(customer.cmrTier ? { cmr_tier: customer.cmrTier } : {}),
+        cmr_tier: customer.cmrTier ?? 'Sin CMR',
         comuna: customer.comuna,
       },
     },
@@ -188,7 +188,7 @@ function subscribeToTravelNudge(): void {
 }
 
 export function clearCustomerContext(): void {
-  clearGlobalContexts([SCHEMAS.customer])
+  clearGlobalContexts()
 }
 
 // ─── Session management ─────────────────────────────────────────────────────
@@ -248,6 +248,26 @@ export function trackAssistantMessageSent(params: { channel: 'app' | 'whatsapp';
     event: {
       schema: SCHEMAS.assistantMessageSent,
       data: { channel: params.channel, intent_guess: params.intentGuess },
+    },
+  })
+}
+
+/**
+ * Identify a demo user after login.
+ * Schema: iglu:com.leosenterprises/customer_identification/jsonschema/1-0-0
+ * `phone` maxLength is 16 — callers must keep generated numbers within that.
+ */
+export function trackCustomerIdentification(payload: {
+  email?: string | null
+  phone?: string | null
+}): void {
+  trackSelfDescribingEvent({
+    event: {
+      schema: 'iglu:com.leosenterprises/customer_identification/jsonschema/1-0-0',
+      data: {
+        email: payload.email ?? null,
+        phone: payload.phone ?? null,
+      },
     },
   })
 }
