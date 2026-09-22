@@ -48,6 +48,10 @@ Chat is `POST /api/chat` (`src/routes/api/chat.ts`). Tools live under `src/lib/t
 
 The system prompt (`src/lib/agent-prompt.ts`) maps those four classes to tools and forbids inventing amounts, merchants, definitions, or menus.
 
+The Asistente header starts on **Claude**. Switch it to **Jev** mid-demo and the next message is classified first. Claude still writes the reply either way.
+
+Before that prompt runs, and only while Jev is selected, [Jev](https://vercel.com/changelog/typesafe-ai-jev-now-available-on-ai-gateway) (`typesafe-ai/jev` on AI Gateway) classifies the question in `src/lib/jev-triage.ts`. One call returns the class (C0–C3), whether the answer needs this customer's data, and a sensitivity score. When the selected class is at least 70% and TypeSafe confidence is at least 0.6, chat passes only that class's tools to Claude. Below either floor, every tool stays available. The Asistente shows the decision on the reply (`Jev · Beneficios · 94%`), and `assistant_message_sent.intent_guess` records that class (`product_info`, `app_navigation`, `benefits_query`, `savings_query`). The call asks AI Gateway for zero data retention. If Jev fails, the reply still streams with every tool.
+
 Suggested questions (Spanish). The first two C0/C1/C3 lines are unchanged; the three C2 lines are the benefits loop and appear as chips in the Asistente empty state:
 
 - ¿Qué es un fondo mutuo?

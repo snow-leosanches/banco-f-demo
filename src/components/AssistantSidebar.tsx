@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, Send, Sparkles, X } from 'lucide-react'
 
-import { useAssistant } from '@/contexts/assistant-context'
+import { useAssistant, type ChatMessage } from '@/contexts/assistant-context'
 import { isSignalsEnabled } from '@/lib/consent'
-import { trackAssistantMessageSent } from '@/lib/snowplow-config'
+import { INTENT_LABELS, type JevTriage } from '@/lib/jev-decision'
 import { PaltaMark } from '@/components/Logo'
 import { cn } from '@/lib/utils'
 
@@ -17,7 +17,7 @@ const SUGGESTED_PROMPTS = [
 ]
 
 export function AssistantSidebar() {
-  const { isOpen, closeAssistant, messages, isSending, sendMessage } = useAssistant()
+  const { isOpen, closeAssistant, messages, isSending, sendMessage, answerEngine, setAnswerEngine } = useAssistant()
   const [input, setInput] = useState('')
   const [signalsOn, setSignalsOn] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -38,7 +38,6 @@ export function AssistantSidebar() {
   const submit = (text: string) => {
     const trimmed = text.trim()
     if (!trimmed || isSending) return
-    trackAssistantMessageSent({ channel: 'app', intentGuess: 'benefits_query' })
     void sendMessage(trimmed)
     setInput('')
   }
@@ -59,11 +58,40 @@ export function AssistantSidebar() {
               <span className={cn('h-1.5 w-1.5 rounded-full', signalsOn ? 'bg-lime' : 'bg-gray-400')} />
               Signals {signalsOn ? 'activado' : 'desactivado'}
             </span>
+            {answerEngine === 'jev' && (
+              <span className="mt-0.5 block text-[11px] font-medium text-text-secondary">Jev clasifica, Claude responde</span>
+            )}
           </div>
         </div>
-        <button onClick={closeAssistant} aria-label="Cerrar asistente" className="text-text-secondary hover:text-text">
-          <X className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex rounded-full bg-sectionGray p-0.5 text-[11px] font-medium" role="group" aria-label="Motor de respuesta">
+            <button
+              type="button"
+              onClick={() => setAnswerEngine('claude')}
+              aria-pressed={answerEngine === 'claude'}
+              className={cn(
+                'rounded-full px-2.5 py-1',
+                answerEngine === 'claude' ? 'bg-secondary text-white' : 'text-text-secondary',
+              )}
+            >
+              Claude
+            </button>
+            <button
+              type="button"
+              onClick={() => setAnswerEngine('jev')}
+              aria-pressed={answerEngine === 'jev'}
+              className={cn(
+                'rounded-full px-2.5 py-1',
+                answerEngine === 'jev' ? 'bg-secondary text-white' : 'text-text-secondary',
+              )}
+            >
+              Jev
+            </button>
+          </div>
+          <button onClick={closeAssistant} aria-label="Cerrar asistente" className="text-text-secondary hover:text-text">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
@@ -118,7 +146,7 @@ export function AssistantSidebar() {
   )
 }
 
-function MessageBubble({ message }: { message: import('@/contexts/assistant-context').ChatMessage }) {
+function MessageBubble({ message }: { message: ChatMessage }) {
   const [showContext, setShowContext] = useState(false)
   const isUser = message.role === 'user'
 
@@ -126,6 +154,8 @@ function MessageBubble({ message }: { message: import('@/contexts/assistant-cont
     <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
       <div className={cn('max-w-[85%] rounded-[16px] px-4 py-3 text-body', isUser ? 'bg-secondary text-white' : 'bg-mint text-text')}>
         <p className="whitespace-pre-wrap">{message.content || (isUser ? '' : '…')}</p>
+
+        {!isUser && message.jev && <JevChip decision={message.jev} />}
 
         {!isUser && message.contextBlock && (
           <button
@@ -144,6 +174,53 @@ function MessageBubble({ message }: { message: import('@/contexts/assistant-cont
           </pre>
         )}
       </div>
+    </div>
+  )
+}
+
+function JevChip({ decision }: { decision: JevTriage }) {
+  const [open, setOpen] = useState(false)
+  const pct = decision.intentProbability == null ? null : Math.round(decision.intentProbability * 100)
+  const entries = decision.probabilities
+    ? (Object.entries(decision.probabilities) as Array<[keyof typeof INTENT_LABELS, number]>).sort((a, b) => b[1] - a[1])
+    : []
+
+  return (
+    <div className="mt-2 border-t border-secondary/15 pt-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1 text-small font-medium text-secondary"
+      >
+        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        Jev · {decision.label}
+        {pct != null ? ` · ${pct}%` : ''}
+        {decision.routed ? '' : ' · revisión'}
+      </button>
+      {open && (
+        <div className="mt-2 space-y-2 text-[11px] leading-relaxed text-text-secondary">
+          <p>Datos del cliente: {Math.round(decision.needsPersonalData * 100)}%.</p>
+          <p>
+            Sensibilidad: {decision.sensitivityLabel} ({decision.sensitivity.toFixed(2)}).
+          </p>
+          <p>
+            {decision.routed
+              ? 'Umbral superado: el modelo de texto solo ve las herramientas de esta clase.'
+              : 'Bajo el umbral: el modelo de texto conserva todas las herramientas.'}
+          </p>
+          {entries.map(([key, probability]) => (
+            <div key={key}>
+              <div className="flex justify-between gap-3">
+                <span>{INTENT_LABELS[key]}</span>
+                <span>{Math.round(probability * 100)}%</span>
+              </div>
+              <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-white">
+                <div className="h-full bg-secondary" style={{ width: `${Math.round(probability * 100)}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

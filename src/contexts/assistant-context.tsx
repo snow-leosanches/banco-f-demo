@@ -9,8 +9,9 @@ import {
   recordInterventionTrigger,
   subscribeInterventionTriggers,
 } from '@/lib/intervention-log'
+import type { JevTriage } from '@/lib/jev-decision'
 import { SIGNALS_INTERVENTION_NAME } from '@/lib/signals-definitions'
-import { getSnowplowDomainUserId } from '@/lib/snowplow-config'
+import { getSnowplowDomainUserId, trackAssistantMessageSent } from '@/lib/snowplow-config'
 import { useUser } from '@/contexts/user-context'
 
 const CTX_START = '__CTX__'
@@ -26,6 +27,7 @@ export interface ChatMessage {
   content: string
   contextSource?: 'signals' | 'local-fallback' | 'none'
   contextBlock?: string | null
+  jev?: JevTriage | null
 }
 
 interface BehaviorEvent {
@@ -35,6 +37,8 @@ interface BehaviorEvent {
   at: number
 }
 
+export type AnswerEngine = 'claude' | 'jev'
+
 interface AssistantContextValue {
   isOpen: boolean
   toggleOpen: () => void
@@ -42,6 +46,8 @@ interface AssistantContextValue {
   closeAssistant: () => void
   messages: ChatMessage[]
   isSending: boolean
+  answerEngine: AnswerEngine
+  setAnswerEngine: (engine: AnswerEngine) => void
   sendMessage: (text: string) => Promise<void>
   recordBenefitView: (category: BenefitCategory, merchant?: string, benefitId?: string) => void
   orbVisible: boolean
@@ -53,6 +59,7 @@ const AssistantContext = createContext<AssistantContextValue | null>(null)
 export function AssistantProvider({ children }: { children: ReactNode }) {
   const { customer } = useUser()
   const [isOpen, setIsOpen] = useState(false)
+  const [answerEngine, setAnswerEngine] = useState<AnswerEngine>('claude')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isSending, setIsSending] = useState(false)
   const [orbVisible, setOrbVisible] = useState(false)
@@ -151,6 +158,13 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         return [...prev, { role: 'assistant', content: '' }]
       })
 
+      let tracked = false
+      const trackOnce = (intentGuess: string) => {
+        if (tracked) return
+        tracked = true
+        trackAssistantMessageSent({ channel: 'app', intentGuess })
+      }
+
       try {
         const response = await fetch('/api/chat', {
           method: 'POST',
@@ -160,6 +174,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             domainSessionId: getDomainSessionId() ?? null,
             domainUserId: getSnowplowDomainUserId(),
             signalsEnabled: isSignalsEnabled(),
+            jevEnabled: answerEngine === 'jev',
             clientBehavior: getClientBehaviorSnapshot(),
             customer,
           }),
@@ -173,6 +188,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         let headerParsed = false
         let contextSource: ChatMessage['contextSource'] = 'none'
         let contextBlock: string | null = null
+        let jev: JevTriage | null = null
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
@@ -186,18 +202,24 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             const startIdx = buffer.indexOf(CTX_START)
             const headerJson = buffer.slice(startIdx + CTX_START.length, endIdx)
             try {
-              const parsed = JSON.parse(headerJson) as { contextSource: ChatMessage['contextSource']; contextBlock: string | null }
+              const parsed = JSON.parse(headerJson) as {
+                contextSource: ChatMessage['contextSource']
+                contextBlock: string | null
+                jev: JevTriage | null
+              }
               contextSource = parsed.contextSource
               contextBlock = parsed.contextBlock
+              jev = parsed.jev
             } catch {
               // ignore malformed header, fall back to defaults
             }
             buffer = buffer.slice(endIdx + CTX_END.length)
             headerParsed = true
+            trackOnce(jev?.intentGuess ?? (answerEngine === 'jev' ? 'unavailable' : 'benefits_query'))
 
             setMessages((prev) => {
               const next = [...prev]
-              next[assistantIndex.current] = { ...next[assistantIndex.current], contextSource, contextBlock }
+              next[assistantIndex.current] = { ...next[assistantIndex.current], contextSource, contextBlock, jev }
               return next
             })
           }
@@ -214,6 +236,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch {
+        trackOnce('unavailable')
         setMessages((prev) => {
           const next = [...prev]
           next[assistantIndex.current] = {
@@ -223,10 +246,11 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           return next
         })
       } finally {
+        trackOnce('unavailable')
         setIsSending(false)
       }
     },
-    [getClientBehaviorSnapshot, customer],
+    [getClientBehaviorSnapshot, customer, answerEngine],
   )
 
   return (
@@ -238,6 +262,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         closeAssistant: () => setIsOpen(false),
         messages,
         isSending,
+        answerEngine,
+        setAnswerEngine,
         sendMessage,
         recordBenefitView,
         orbVisible,
