@@ -5,52 +5,98 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { getBenefitsByCategory } from '@/lib/config'
 import { useAssistant } from '@/contexts/assistant-context'
 import { useUser } from '@/contexts/user-context'
+import { useLanguage } from '@/contexts/language-context'
+import type { Language } from '@/contexts/language-context'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/')({ component: Home })
 
-const HERO_SLIDES = [
-  {
-    id: 'fpuntos',
-    kicker: 'CMR Puntos es Fpuntos',
-    title: 'CMR Puntos es Fpuntos',
-    subtitle: 'Disfruta cientos de canjes ultra rebajados',
-    cta: 'Más información',
-    href: '/beneficios',
-    tone: 'dark' as const,
-  },
-  {
-    id: 'fiestas',
-    kicker: 'Fiestas Patrias',
-    title: '¡Aprovecha canjes de Fiestas Patrias!',
-    subtitle: 'En Falabella.com, Tottus y Sodimac desde 4.000 Fpuntos',
-    cta: 'Canjea aquí',
-    href: '/beneficios',
-    tone: 'dark' as const,
-  },
-  {
-    id: 'viajes',
-    kicker: 'Viajes',
-    title: 'Prepárate para viajar: destinos seleccionados',
-    subtitle: 'Canjea destinos con tus Fpuntos y tu tarjeta CMR',
-    cta: 'Ver beneficios',
-    href: '/beneficios',
-    tone: 'forest' as const,
-  },
-]
+const HERO_SLIDES: Record<
+  Language,
+  { id: string; kicker: string; title: string; subtitle: string; cta: string; href: string; tone: 'dark' | 'forest' }[]
+> = {
+  es: [
+    {
+      id: 'fpuntos',
+      kicker: 'CMR Puntos es Fpuntos',
+      title: 'CMR Puntos es Fpuntos',
+      subtitle: 'Disfruta cientos de canjes ultra rebajados',
+      cta: 'Más información',
+      href: '/beneficios',
+      tone: 'dark',
+    },
+    {
+      id: 'fiestas',
+      kicker: 'Fiestas Patrias',
+      title: '¡Aprovecha canjes de Fiestas Patrias!',
+      subtitle: 'En Falabella.com, Tottus y Sodimac desde 4.000 Fpuntos',
+      cta: 'Canjea aquí',
+      href: '/beneficios',
+      tone: 'dark',
+    },
+    {
+      id: 'viajes',
+      kicker: 'Viajes',
+      title: 'Prepárate para viajar: destinos seleccionados',
+      subtitle: 'Canjea destinos con tus Fpuntos y tu tarjeta CMR',
+      cta: 'Ver beneficios',
+      href: '/beneficios',
+      tone: 'forest',
+    },
+  ],
+  en: [
+    {
+      id: 'fpuntos',
+      kicker: 'CMR Puntos is now Fpuntos',
+      title: 'CMR Puntos is now Fpuntos',
+      subtitle: 'Enjoy hundreds of steeply discounted redemptions',
+      cta: 'Learn more',
+      href: '/beneficios',
+      tone: 'dark',
+    },
+    {
+      id: 'fiestas',
+      kicker: 'Fiestas Patrias',
+      title: 'Grab Fiestas Patrias redemptions now!',
+      subtitle: 'At Falabella.com, Tottus, and Sodimac from 4,000 Fpuntos',
+      cta: 'Redeem here',
+      href: '/beneficios',
+      tone: 'dark',
+    },
+    {
+      id: 'viajes',
+      kicker: 'Travel',
+      title: 'Get ready to travel: select destinations',
+      subtitle: 'Redeem destinations with your Fpuntos and your CMR card',
+      cta: 'View benefits',
+      href: '/beneficios',
+      tone: 'forest',
+    },
+  ],
+}
 
 function Home() {
   const [slide, setSlide] = useState(0)
   const [rut, setRut] = useState('')
   const { openAssistant, sendMessage } = useAssistant()
   const { customer } = useUser()
-  const current = HERO_SLIDES[slide]
+  const { language } = useLanguage()
+  const slides = HERO_SLIDES[language]
+  const current = slides[slide]
   const restaurantMax = Math.max(...getBenefitsByCategory('Restaurantes').map((b) => b.discountPct))
   const travelMax = Math.max(...getBenefitsByCategory('Viajes').map((b) => b.discountPct))
   const allMax = Math.max(...getBenefitsByCategory('Retail').map((b) => b.discountPct), restaurantMax, travelMax)
 
   const simulate = () => {
     openAssistant()
+    if (language === 'en') {
+      void sendMessage(
+        rut.trim()
+          ? `I want to simulate a consumer loan. My RUT is ${rut.trim()}.`
+          : 'I want to simulate a consumer loan.',
+      )
+      return
+    }
     void sendMessage(
       rut.trim()
         ? `Quiero simular un crédito de consumo. Mi RUT es ${rut.trim()}.`
@@ -83,27 +129,27 @@ function Home() {
             </div>
             <button
               type="button"
-              aria-label="Anterior"
-              onClick={() => setSlide((s) => (s === 0 ? HERO_SLIDES.length - 1 : s - 1))}
+              aria-label={language === 'en' ? 'Previous' : 'Anterior'}
+              onClick={() => setSlide((s) => (s === 0 ? slides.length - 1 : s - 1))}
               className="absolute left-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-text shadow-sm"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
             <button
               type="button"
-              aria-label="Siguiente"
-              onClick={() => setSlide((s) => (s === HERO_SLIDES.length - 1 ? 0 : s + 1))}
+              aria-label={language === 'en' ? 'Next' : 'Siguiente'}
+              onClick={() => setSlide((s) => (s === slides.length - 1 ? 0 : s + 1))}
               className="absolute right-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white text-text shadow-sm"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
           </div>
           <div className="mt-4 flex justify-center gap-2">
-            {HERO_SLIDES.map((s, i) => (
+            {slides.map((s, i) => (
               <button
                 key={s.id}
                 type="button"
-                aria-label={`Ir al banner ${i + 1}`}
+                aria-label={language === 'en' ? `Go to banner ${i + 1}` : `Ir al banner ${i + 1}`}
                 onClick={() => setSlide(i)}
                 className={cn('h-1.5 rounded-full transition-all', i === slide ? 'w-8 bg-lime' : 'w-1.5 bg-[#d9decc]')}
               />
@@ -115,13 +161,15 @@ function Home() {
       <section className="bg-mint py-10">
         <div className="mx-auto flex max-w-page flex-col items-center justify-between gap-8 px-6 lg:flex-row lg:px-24">
           <h2 className="max-w-xl text-center font-heading text-h2 text-text lg:text-left">
-            El Crédito de Consumo que necesitas ¡a un par de clics!
+            {language === 'en'
+              ? 'The Consumer Loan you need, in just a couple of clicks!'
+              : 'El Crédito de Consumo que necesitas ¡a un par de clics!'}
           </h2>
           <div className="flex w-full max-w-[328px] flex-col gap-3">
             <input
               value={rut}
               onChange={(e) => setRut(e.target.value)}
-              placeholder="Ingresa tu RUT"
+              placeholder={language === 'en' ? 'Enter your RUT' : 'Ingresa tu RUT'}
               className="h-[54px] rounded-sm border border-border bg-white px-4 text-body text-text outline-none placeholder:text-text-secondary focus:border-secondary"
             />
             <button
@@ -129,7 +177,7 @@ function Home() {
               onClick={simulate}
               className="flex h-14 w-full items-center justify-center rounded-full bg-secondary text-body text-white hover:bg-highlight"
             >
-              Quiero simular
+              {language === 'en' ? 'Simulate it' : 'Quiero simular'}
             </button>
           </div>
         </div>
@@ -137,19 +185,25 @@ function Home() {
 
       <section id="gennial" className="bg-sectionGray py-16">
         <div className="mx-auto max-w-page px-6 lg:px-24">
-          <h2 className="mb-8 font-heading text-h2 text-text">Atrévete a ser Gennial</h2>
+          <h2 className="mb-8 font-heading text-h2 text-text">
+            {language === 'en' ? 'Dare to be Gennial' : 'Atrévete a ser Gennial'}
+          </h2>
           <div className="grid gap-8 md:grid-cols-2">
             <OpeningCard
-              title="¡Abre hoy tu CMR!"
-              subtitle="Y disfruta descuentos exclusivos"
-              cta="Pídela aquí"
+              title={language === 'en' ? 'Open your CMR today!' : '¡Abre hoy tu CMR!'}
+              subtitle={language === 'en' ? 'And enjoy exclusive discounts' : 'Y disfruta descuentos exclusivos'}
+              cta={language === 'en' ? 'Apply here' : 'Pídela aquí'}
               href="/beneficios"
               card={<CmrCard />}
             />
             <OpeningCard
-              title="Abre tu Cuenta Corriente"
-              subtitle="Costo $0 en mantención. ¡Sin condiciones, para siempre!"
-              cta="Solicítala aquí"
+              title={language === 'en' ? 'Open your Checking Account' : 'Abre tu Cuenta Corriente'}
+              subtitle={
+                language === 'en'
+                  ? '$0 maintenance cost. No conditions, forever!'
+                  : 'Costo $0 en mantención. ¡Sin condiciones, para siempre!'
+              }
+              cta={language === 'en' ? 'Apply here' : 'Solicítala aquí'}
               href="/cuenta"
               card={<DebitCard />}
             />
@@ -159,32 +213,39 @@ function Home() {
 
       <section className="bg-white py-16">
         <div className="mx-auto max-w-page px-6 lg:px-24">
-          <h2 className="font-heading text-h2 text-text">¡Aprovecha beneficios todos los días!</h2>
-          <p className="mt-1 text-body text-text-secondary">Conoce los descuentos del mes</p>
+          <h2 className="font-heading text-h2 text-text">
+            {language === 'en' ? 'Enjoy benefits every day!' : '¡Aprovecha beneficios todos los días!'}
+          </h2>
+          <p className="mt-1 text-body text-text-secondary">
+            {language === 'en' ? "Check out this month's discounts" : 'Conoce los descuentos del mes'}
+          </p>
           <div className="mt-8 grid gap-6 md:grid-cols-3">
             <PromoCard
-              title="Beneficios del mes"
-              eyebrow="Exclusivo con tus tarjetas"
-              cadence="Todos los días"
+              title={language === 'en' ? 'Benefits of the month' : 'Beneficios del mes'}
+              eyebrow={language === 'en' ? 'Exclusive with your cards' : 'Exclusivo con tus tarjetas'}
+              cadence={language === 'en' ? 'Every day' : 'Todos los días'}
               pct={allMax}
               href="/beneficios"
               gradient="from-[#1b3d14] via-[#347B23] to-[#5aa33a]"
+              language={language}
             />
             <PromoCard
-              title="Dcto en Restaurante"
-              eyebrow="Exclusivo con tus tarjetas"
-              cadence="Todos los días"
+              title={language === 'en' ? 'Restaurant discount' : 'Dcto en Restaurante'}
+              eyebrow={language === 'en' ? 'Exclusive with your cards' : 'Exclusivo con tus tarjetas'}
+              cadence={language === 'en' ? 'Every day' : 'Todos los días'}
               pct={restaurantMax}
               href="/beneficios"
               gradient="from-[#3d1d12] via-[#7a3a1e] to-[#c46a2a]"
+              language={language}
             />
             <PromoCard
-              title="Beneficios Elite del mes"
-              eyebrow="Exclusivos con tu CMR Elite"
-              cadence="Todos los días"
+              title={language === 'en' ? "This month's Elite benefits" : 'Beneficios Elite del mes'}
+              eyebrow={language === 'en' ? 'Exclusive with your CMR Elite' : 'Exclusivos con tu CMR Elite'}
+              cadence={language === 'en' ? 'Every day' : 'Todos los días'}
               pct={travelMax}
               href="/beneficios"
               gradient="from-[#1a1a1a] via-[#3a3220] to-[#B08D3E]"
+              language={language}
             />
           </div>
           <div className="mt-8 flex justify-center">
@@ -192,7 +253,7 @@ function Home() {
               to="/beneficios"
               className="inline-flex h-14 min-w-64 items-center justify-center rounded-full bg-secondary px-8 text-body text-white hover:bg-highlight"
             >
-              Quiero conocer todos
+              {language === 'en' ? 'Show me all of them' : 'Quiero conocer todos'}
             </Link>
           </div>
         </div>
@@ -200,19 +261,21 @@ function Home() {
 
       <section className="bg-white pb-8">
         <div className="mx-auto max-w-page px-6 lg:px-24">
-          <h2 className="mb-6 font-heading text-h2 text-text">Mantente al día</h2>
+          <h2 className="mb-6 font-heading text-h2 text-text">
+            {language === 'en' ? 'Stay up to date' : 'Mantente al día'}
+          </h2>
           <div className="grid gap-6 md:grid-cols-2">
             <Link
               to="/cuenta"
               className="flex min-h-[140px] items-end rounded-[24px] bg-[#e8f3e3] p-8 text-h3 font-medium text-text shadow-sm"
             >
-              Paga tus créditos
+              {language === 'en' ? 'Pay your loans' : 'Paga tus créditos'}
             </Link>
             <Link
               to="/cuenta"
               className="flex min-h-[140px] items-end rounded-[24px] bg-[#eef2f6] p-8 text-h3 font-medium text-text shadow-sm"
             >
-              Paga tu Tarjeta CMR
+              {language === 'en' ? 'Pay your CMR Card' : 'Paga tu Tarjeta CMR'}
             </Link>
           </div>
         </div>
@@ -221,31 +284,54 @@ function Home() {
       <section className="bg-white py-8">
         <div className="mx-auto grid max-w-page gap-6 px-6 md:grid-cols-2 lg:px-24">
           <article className="rounded-[24px] bg-gradient-to-br from-[#154734] to-[#3B9326] p-8 text-white shadow-sm">
-            <h2 className="font-heading text-h2 text-white">¡Un Elite complementa su viaje!</h2>
+            <h2 className="font-heading text-h2 text-white">
+              {language === 'en' ? 'An Elite card upgrades your trip!' : '¡Un Elite complementa su viaje!'}
+            </h2>
             <p className="mt-3 text-body text-white/90">
-              Aprovecha este beneficio exclusivo
-              {customer?.cmrTier
-                ? ` por ser cliente ${customer.cmrTier}`
-                : ' con tu tarjeta CMR'} en destinos y pasajes
-              seleccionados.
+              {language === 'en' ? (
+                <>
+                  Enjoy this exclusive benefit
+                  {customer?.cmrTier ? ` as a ${customer.cmrTier} customer` : ' with your CMR card'} on select
+                  destinations and fares.
+                </>
+              ) : (
+                <>
+                  Aprovecha este beneficio exclusivo
+                  {customer?.cmrTier ? ` por ser cliente ${customer.cmrTier}` : ' con tu tarjeta CMR'} en destinos y
+                  pasajes seleccionados.
+                </>
+              )}
             </p>
             <Link
               to="/beneficios"
               className="mt-6 inline-flex text-small font-medium text-white underline underline-offset-4"
             >
-              Más información
+              {language === 'en' ? 'Learn more' : 'Más información'}
             </Link>
           </article>
           <article className="rounded-[24px] bg-sectionGray p-8 shadow-sm">
-            <h2 className="font-heading text-h2 text-text">¡Empieza a ahorrar por objetivos!</h2>
+            <h2 className="font-heading text-h2 text-text">
+              {language === 'en' ? 'Start saving toward your goals!' : '¡Empieza a ahorrar por objetivos!'}
+            </h2>
             <ul className="mt-4 space-y-2 text-small text-text">
-              <li>Costo $0 en mantención</li>
-              <li>Tu plata se reajustará anualmente a la UF.</li>
-              <li>Separa tus ahorros y ponle nombre a cada objetivo desde la App.</li>
-              <li>Ábrela 100% digital desde tu App Banco F.</li>
+              {language === 'en' ? (
+                <>
+                  <li>$0 maintenance cost</li>
+                  <li>Your money is adjusted annually to the UF.</li>
+                  <li>Split your savings and name each goal from the App.</li>
+                  <li>Open it 100% digitally from your Banco F App.</li>
+                </>
+              ) : (
+                <>
+                  <li>Costo $0 en mantención</li>
+                  <li>Tu plata se reajustará anualmente a la UF.</li>
+                  <li>Separa tus ahorros y ponle nombre a cada objetivo desde la App.</li>
+                  <li>Ábrela 100% digital desde tu App Banco F.</li>
+                </>
+              )}
             </ul>
             <Link to="/cuenta" className="mt-6 inline-flex text-small font-medium text-secondary">
-              Conoce más
+              {language === 'en' ? 'Learn more' : 'Conoce más'}
             </Link>
           </article>
         </div>
@@ -311,6 +397,7 @@ function PromoCard({
   pct,
   href,
   gradient,
+  language,
 }: {
   title: string
   eyebrow: string
@@ -318,6 +405,7 @@ function PromoCard({
   pct: number
   href: string
   gradient: string
+  language: Language
 }) {
   return (
     <Link to={href} className={cn('relative block h-[456px] overflow-hidden rounded-md bg-gradient-to-br p-6 text-white', gradient)}>
@@ -325,9 +413,11 @@ function PromoCard({
       <h3 className="mt-2 font-heading text-[28px] font-medium leading-tight">{title}</h3>
       <p className="mt-3 text-small text-white/80">{cadence}</p>
       <div className="absolute bottom-8 left-6">
-        <p className="text-small">Hasta</p>
-        <p className="font-heading text-[40px] font-medium leading-none">{pct}% dcto</p>
-        <p className="mt-2 text-small uppercase tracking-wide">Sin Tope</p>
+        <p className="text-small">{language === 'en' ? 'Up to' : 'Hasta'}</p>
+        <p className="font-heading text-[40px] font-medium leading-none">
+          {pct}% {language === 'en' ? 'off' : 'dcto'}
+        </p>
+        <p className="mt-2 text-small uppercase tracking-wide">{language === 'en' ? 'Uncapped' : 'Sin Tope'}</p>
       </div>
     </Link>
   )

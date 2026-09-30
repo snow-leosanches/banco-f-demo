@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { benefits, formatBenefitOffer, type BenefitCategory } from '@/lib/config'
 import { useAssistant } from '@/contexts/assistant-context'
 import { useUser } from '@/contexts/user-context'
+import { useLanguage } from '@/contexts/language-context'
+import { translateBenefit, translateCategory } from '@/lib/i18n/catalog'
 import { trackBenefitCategoryFiltered } from '@/lib/snowplow-config'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +24,7 @@ function Beneficios() {
   const [activeCategory, setActiveCategory] = useState<BenefitCategory | 'Todos'>('Todos')
   const { recordBenefitView } = useAssistant()
   const { customer } = useUser()
+  const { language } = useLanguage()
 
   const filtered = activeCategory === 'Todos' ? benefits : benefits.filter((b) => b.category === activeCategory)
 
@@ -37,11 +40,24 @@ function Beneficios() {
     <div className="bg-white">
       <div className="bg-mint py-12">
         <div className="mx-auto max-w-page px-6 lg:px-24">
-          <p className="text-small font-medium text-secondary">Beneficios y Fpuntos</p>
-          <h1 className="mt-2 font-heading text-h1 text-text">¡Aprovecha beneficios todos los días!</h1>
+          <p className="text-small font-medium text-secondary">
+            {language === 'en' ? 'Benefits & Fpuntos' : 'Beneficios y Fpuntos'}
+          </p>
+          <h1 className="mt-2 font-heading text-h1 text-text">
+            {language === 'en' ? 'Enjoy benefits every day!' : '¡Aprovecha beneficios todos los días!'}
+          </h1>
           <p className="mt-2 max-w-2xl text-body text-text-secondary">
-            Descuentos exclusivos con tus tarjetas{customer ? `, ${customer.firstName}` : ''}. Filtra por categoría y
-            entra a cada beneficio para ver las condiciones.
+            {language === 'en' ? (
+              <>
+                Exclusive discounts with your cards{customer ? `, ${customer.firstName}` : ''}. Filter by category and
+                open each benefit to see the terms.
+              </>
+            ) : (
+              <>
+                Descuentos exclusivos con tus tarjetas{customer ? `, ${customer.firstName}` : ''}. Filtra por categoría y
+                entra a cada beneficio para ver las condiciones.
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -59,36 +75,43 @@ function Beneficios() {
                   : 'border-border bg-surface text-text hover:bg-mint',
               )}
             >
-              {category === 'Todos' ? `Todos (${benefits.length})` : category}
+              {category === 'Todos'
+                ? `${language === 'en' ? 'All' : 'Todos'} (${benefits.length})`
+                : translateCategory(category, language)}
             </button>
           ))}
         </div>
 
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((benefit) => (
-            <Link
-              key={benefit.id}
-              to="/beneficios/$benefitId"
-              params={{ benefitId: benefit.id }}
-              className="overflow-hidden rounded-[24px] bg-surface shadow-sm transition-shadow hover:shadow-md"
-            >
-              <div className="relative h-40 overflow-hidden">
-                {benefit.image ? (
-                  <img src={benefit.image} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className={cn('h-full w-full bg-gradient-to-br', CATEGORY_GRADIENT[benefit.category])} />
-                )}
-                <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/75 via-black/25 to-transparent p-5 text-white">
-                  <p className="text-small text-white/80">{benefit.category}</p>
-                  <p className="font-heading text-[28px] font-medium leading-none">{formatBenefitOffer(benefit)}</p>
+          {filtered.map((benefit) => {
+            const localized = translateBenefit(benefit, language)
+            return (
+              <Link
+                key={benefit.id}
+                to="/beneficios/$benefitId"
+                params={{ benefitId: benefit.id }}
+                className="overflow-hidden rounded-[24px] bg-surface shadow-sm transition-shadow hover:shadow-md"
+              >
+                <div className="relative h-40 overflow-hidden">
+                  {benefit.image ? (
+                    <img src={benefit.image} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className={cn('h-full w-full bg-gradient-to-br', CATEGORY_GRADIENT[benefit.category])} />
+                  )}
+                  <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/75 via-black/25 to-transparent p-5 text-white">
+                    <p className="text-small text-white/80">{translateCategory(benefit.category, language)}</p>
+                    <p className="font-heading text-[28px] font-medium leading-none">
+                      {formatBenefitOffer(localized, language)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="p-5">
-                <h3 className="font-heading text-h3 text-text">{benefit.merchant}</h3>
-                <p className="mt-2 text-small text-text-secondary">{benefit.description}</p>
-              </div>
-            </Link>
-          ))}
+                <div className="p-5">
+                  <h3 className="font-heading text-h3 text-text">{benefit.merchant}</h3>
+                  <p className="mt-2 text-small text-text-secondary">{localized.description}</p>
+                </div>
+              </Link>
+            )
+          })}
         </div>
       </div>
     </div>

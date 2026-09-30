@@ -8,10 +8,13 @@ import { siteConfig } from '@/lib/config'
 import { resetSession } from '@/lib/snowplow-config'
 import { buildUrlWithUtm } from '@/lib/utils'
 import { isSignalsEnabled, setSignalsEnabled } from '@/lib/consent'
+import { useLanguage } from '@/contexts/language-context'
+import { translateLabel } from '@/lib/i18n/nav'
 import { PaltaMark } from '@/components/Logo'
 
 export default function DemoFooter() {
   const navigate = useNavigate()
+  const { language } = useLanguage()
   const [signalsOn, setSignalsOn] = useState(true)
   const [signalsDropdownOpen, setSignalsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -62,12 +65,14 @@ export default function DemoFooter() {
         <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
           {siteConfig.navigation.footerColumns.map((col) => (
             <div key={col.title}>
-              <h3 className="mb-4 text-[16px] font-normal uppercase tracking-[2px] text-footerMuted">{col.title}</h3>
+              <h3 className="mb-4 text-[16px] font-normal uppercase tracking-[2px] text-footerMuted">
+                {translateLabel(col.title, language)}
+              </h3>
               <ul className="space-y-2">
                 {col.links.map((link) => (
                   <li key={link.label}>
                     <a href={link.href} className="text-[14px] font-normal text-white hover:text-lime">
-                      {link.label}
+                      {translateLabel(link.label, language)}
                     </a>
                   </li>
                 ))}
@@ -78,27 +83,27 @@ export default function DemoFooter() {
 
         <div className="mt-10 flex flex-wrap items-center gap-3">
           {social.linkedin && (
-            <SocialDot href={social.linkedin} label="Banco F en LinkedIn">
+            <SocialDot href={social.linkedin} label={language === 'en' ? 'Banco F on LinkedIn' : 'Banco F en LinkedIn'}>
               in
             </SocialDot>
           )}
           {social.instagram && (
-            <SocialDot href={social.instagram} label="Banco F en Instagram">
+            <SocialDot href={social.instagram} label={language === 'en' ? 'Banco F on Instagram' : 'Banco F en Instagram'}>
               ig
             </SocialDot>
           )}
           {social.youtube && (
-            <SocialDot href={social.youtube} label="Banco F en YouTube">
+            <SocialDot href={social.youtube} label={language === 'en' ? 'Banco F on YouTube' : 'Banco F en YouTube'}>
               yt
             </SocialDot>
           )}
           {social.facebook && (
-            <SocialDot href={social.facebook} label="Banco F en Facebook">
+            <SocialDot href={social.facebook} label={language === 'en' ? 'Banco F on Facebook' : 'Banco F en Facebook'}>
               f
             </SocialDot>
           )}
           {social.x && (
-            <SocialDot href={social.x} label="Banco F en X">
+            <SocialDot href={social.x} label={language === 'en' ? 'Banco F on X' : 'Banco F en X'}>
               X
             </SocialDot>
           )}
@@ -107,21 +112,43 @@ export default function DemoFooter() {
 
       <div className="border-t border-white/10">
         <div className="mx-auto max-w-page space-y-3 px-6 py-6 text-[12px] leading-relaxed text-footerMuted lg:px-24">
-          <p>
-            Infórmese sobre las entidades autorizadas para emitir Tarjetas de Pago en el país, quienes se encuentran
-            inscritas en los Registros de Emisores de Tarjetas que lleva la CMF, en{' '}
-            <a href="https://www.cmfchile.cl" className="underline" target="_blank" rel="noopener noreferrer">
-              www.cmfchile.cl
-            </a>
-            .
-          </p>
-          <p>
-            Infórmese sobre la garantía estatal de los depósitos en su banco o en{' '}
-            <a href="https://www.cmfchile.cl" className="underline" target="_blank" rel="noopener noreferrer">
-              cmfchile.cl
-            </a>
-            . © {new Date().getFullYear()} Banco F. Todos los derechos reservados.
-          </p>
+          {language === 'en' ? (
+            <>
+              <p>
+                Find out which entities are authorized to issue Payment Cards in the country, registered with the
+                CMF's Card Issuer Registry, at{' '}
+                <a href="https://www.cmfchile.cl" className="underline" target="_blank" rel="noopener noreferrer">
+                  www.cmfchile.cl
+                </a>
+                .
+              </p>
+              <p>
+                Learn about the state deposit guarantee at your bank or at{' '}
+                <a href="https://www.cmfchile.cl" className="underline" target="_blank" rel="noopener noreferrer">
+                  cmfchile.cl
+                </a>
+                . © {new Date().getFullYear()} Banco F. All rights reserved.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                Infórmese sobre las entidades autorizadas para emitir Tarjetas de Pago en el país, quienes se encuentran
+                inscritas en los Registros de Emisores de Tarjetas que lleva la CMF, en{' '}
+                <a href="https://www.cmfchile.cl" className="underline" target="_blank" rel="noopener noreferrer">
+                  www.cmfchile.cl
+                </a>
+                .
+              </p>
+              <p>
+                Infórmese sobre la garantía estatal de los depósitos en su banco o en{' '}
+                <a href="https://www.cmfchile.cl" className="underline" target="_blank" rel="noopener noreferrer">
+                  cmfchile.cl
+                </a>
+                . © {new Date().getFullYear()} Banco F. Todos los derechos reservados.
+              </p>
+            </>
+          )}
         </div>
       </div>
 

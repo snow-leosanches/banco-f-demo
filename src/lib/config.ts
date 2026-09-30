@@ -368,10 +368,10 @@ export interface Benefit {
 
 export const benefits: Benefit[] = scrapedBenefits as Benefit[]
 
-export function formatBenefitOffer(benefit: Benefit): string {
+export function formatBenefitOffer(benefit: Benefit, language: 'es' | 'en' = 'es'): string {
   if (benefit.offerLabel) return benefit.offerLabel
-  if (benefit.discountPct > 0) return `${benefit.discountPct}% dcto`
-  return 'Beneficio'
+  if (benefit.discountPct > 0) return language === 'en' ? `${benefit.discountPct}% off` : `${benefit.discountPct}% dcto`
+  return language === 'en' ? 'Benefit' : 'Beneficio'
 }
 
 export function getBenefitsByCategory(category: BenefitCategory): Benefit[] {

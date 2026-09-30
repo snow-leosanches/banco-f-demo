@@ -1,5 +1,6 @@
 import { experimental_evaluate as evaluate } from 'ai'
 
+import type { Language } from '@/contexts/language-context'
 import {
   CONFIDENCE_FLOOR,
   INTENT_GUESSES,
@@ -22,7 +23,11 @@ function readTypesafeConfidence(metadata: { typesafe?: unknown } | undefined, qu
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
-export async function triageQuestion(message: string, abortSignal?: AbortSignal): Promise<JevTriage> {
+export async function triageQuestion(
+  message: string,
+  language: Language = 'es',
+  abortSignal?: AbortSignal,
+): Promise<JevTriage> {
   const result = await evaluate({
     model: 'typesafe-ai/jev',
     state: { message },
@@ -73,14 +78,14 @@ export async function triageQuestion(message: string, abortSignal?: AbortSignal)
 
   return {
     intent: intent.choice satisfies IntentClass,
-    label: INTENT_LABELS[intent.choice],
+    label: INTENT_LABELS[language][intent.choice],
     intentGuess: INTENT_GUESSES[intent.choice],
     intentProbability,
     probabilities: intent.probabilities ?? null,
     confidence,
     needsPersonalData: needsPersonalData.probability,
     sensitivity: sensitivity.score,
-    sensitivityLabel: sensitivityLabel(sensitivity.score),
+    sensitivityLabel: sensitivityLabel(sensitivity.score, language),
     routed,
   }
 }

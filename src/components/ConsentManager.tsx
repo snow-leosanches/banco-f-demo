@@ -17,6 +17,7 @@ import {
   enableAnonymousMode,
   disableAnonymousMode,
 } from '../lib/snowplow-config'
+import { useLanguage } from '../contexts/language-context'
 
 const DEFAULT_PREFERENCES: ConsentPreferences = {
   necessary: true,
@@ -25,7 +26,46 @@ const DEFAULT_PREFERENCES: ConsentPreferences = {
   preferences: false,
 }
 
+const COPY = {
+  es: {
+    barText: 'Usamos cookies para mejorar tu experiencia. Consulta más ',
+    here: 'aquí',
+    understood: 'Entendido',
+    title: 'Preferencias de privacidad',
+    close: 'Cerrar',
+    modalText: 'Usamos cookies para mejorar tu experiencia. Consulta más en ',
+    rejectAll: 'Rechazar todo',
+    savePreferences: 'Guardar preferencias',
+    acceptAll: 'Aceptar todo',
+    categories: [
+      { key: 'necessary' as const, label: 'Necesarias', description: 'Requeridas para que la banca en línea funcione. Siempre activas.' },
+      { key: 'analytics' as const, label: 'Analíticas', description: 'Nos ayudan a entender cómo usas la app para mejorar tu experiencia.' },
+      { key: 'marketing' as const, label: 'Marketing', description: 'Personalizan los beneficios y campañas que te mostramos.' },
+      { key: 'preferences' as const, label: 'Preferencias', description: 'Recuerdan tus ajustes entre sesiones.' },
+    ],
+  },
+  en: {
+    barText: 'We use cookies to improve your experience. Read more ',
+    here: 'here',
+    understood: 'Got it',
+    title: 'Privacy preferences',
+    close: 'Close',
+    modalText: 'We use cookies to improve your experience. Read more ',
+    rejectAll: 'Reject all',
+    savePreferences: 'Save preferences',
+    acceptAll: 'Accept all',
+    categories: [
+      { key: 'necessary' as const, label: 'Necessary', description: 'Required for online banking to work. Always on.' },
+      { key: 'analytics' as const, label: 'Analytics', description: 'Help us understand how you use the app to improve your experience.' },
+      { key: 'marketing' as const, label: 'Marketing', description: 'Personalize the benefits and campaigns we show you.' },
+      { key: 'preferences' as const, label: 'Preferences', description: 'Remember your settings between sessions.' },
+    ],
+  },
+} as const
+
 export function ConsentManager() {
+  const { language } = useLanguage()
+  const t = COPY[language]
   const [barOpen, setBarOpen] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [preferences, setPreferences] = useState<ConsentPreferences>(DEFAULT_PREFERENCES)
@@ -85,19 +125,14 @@ export function ConsentManager() {
     setPreferences((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const categories: { key: keyof ConsentPreferences; label: string; description: string }[] = [
-    { key: 'necessary', label: 'Necesarias', description: 'Requeridas para que la banca en línea funcione. Siempre activas.' },
-    { key: 'analytics', label: 'Analíticas', description: 'Nos ayudan a entender cómo usas la app para mejorar tu experiencia.' },
-    { key: 'marketing', label: 'Marketing', description: 'Personalizan los beneficios y campañas que te mostramos.' },
-    { key: 'preferences', label: 'Preferencias', description: 'Recuerdan tus ajustes entre sesiones.' },
-  ]
+  const categories = t.categories
 
   return (
     <>
       {barOpen && !isOpen && (
         <div className="fixed bottom-6 left-1/2 z-50 flex w-[min(613px,calc(100%-2rem))] -translate-x-1/2 items-center justify-between gap-4 rounded-[16px] bg-white px-4 py-3 shadow-md">
           <p className="text-small text-text">
-            Usamos cookies para mejorar tu experiencia. Consulta más{' '}
+            {t.barText}
             <button
               type="button"
               className="font-medium text-secondary"
@@ -106,7 +141,7 @@ export function ConsentManager() {
                 setBarOpen(false)
               }}
             >
-              aquí
+              {t.here}
             </button>
             .
           </p>
@@ -115,7 +150,7 @@ export function ConsentManager() {
             onClick={acceptAll}
             className="h-14 shrink-0 rounded-full bg-secondary px-8 text-body text-white hover:bg-highlight"
           >
-            Entendido
+            {t.understood}
           </button>
         </div>
       )}
@@ -124,15 +159,15 @@ export function ConsentManager() {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <div className="w-full max-w-lg rounded-[24px] bg-surface p-6 shadow-lg">
             <div className="flex items-start justify-between">
-              <h2 className="font-heading text-h3 text-text">Preferencias de privacidad</h2>
-              <button onClick={close} aria-label="Cerrar" className="text-text-secondary hover:text-text">
+              <h2 className="font-heading text-h3 text-text">{t.title}</h2>
+              <button onClick={close} aria-label={t.close} className="text-text-secondary hover:text-text">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <p className="mt-2 text-small text-text-secondary">
-              Usamos cookies para mejorar tu experiencia. Consulta más en{' '}
+              {t.modalText}
               <a href="https://snowplow.io/privacy-policy/" target="_blank" rel="noopener noreferrer" className="text-secondary">
-                aquí
+                {t.here}
               </a>
               .
             </p>
@@ -160,19 +195,19 @@ export function ConsentManager() {
                 onClick={rejectAll}
                 className="h-12 rounded-full border border-border px-5 text-small font-medium text-text hover:bg-sectionGray"
               >
-                Rechazar todo
+                {t.rejectAll}
               </button>
               <button
                 onClick={savePreferences}
                 className="h-12 rounded-full border-[1.5px] border-hazteBg bg-hazteBg px-5 text-small font-medium text-primary"
               >
-                Guardar preferencias
+                {t.savePreferences}
               </button>
               <button
                 onClick={acceptAll}
                 className="h-12 rounded-full bg-secondary px-5 text-small font-medium text-white hover:bg-highlight"
               >
-                Aceptar todo
+                {t.acceptAll}
               </button>
             </div>
           </div>

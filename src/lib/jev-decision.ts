@@ -1,12 +1,12 @@
+import type { Language } from '@/contexts/language-context'
+
 export const INTENT_CLASSES = ['c0', 'c1', 'c2', 'c3'] as const
 
 export type IntentClass = (typeof INTENT_CLASSES)[number]
 
-export const INTENT_LABELS: Record<IntentClass, string> = {
-  c0: 'Producto',
-  c1: 'Navegación',
-  c2: 'Beneficios',
-  c3: 'Ahorro',
+export const INTENT_LABELS: Record<Language, Record<IntentClass, string>> = {
+  es: { c0: 'Producto', c1: 'Navegación', c2: 'Beneficios', c3: 'Ahorro' },
+  en: { c0: 'Product', c1: 'Navigation', c2: 'Benefits', c3: 'Savings' },
 }
 
 /** Values written to `assistant_message_sent.intent_guess` (max 64 chars). */
@@ -17,7 +17,10 @@ export const INTENT_GUESSES: Record<IntentClass, string> = {
   c3: 'savings_query',
 }
 
-const SENSITIVITY_LABELS = ['Educación', 'Navegación', 'Beneficios personales', 'Saldos y ahorro'] as const
+const SENSITIVITY_LABELS: Record<Language, readonly string[]> = {
+  es: ['Educación', 'Navegación', 'Beneficios personales', 'Saldos y ahorro'],
+  en: ['Education', 'Navigation', 'Personal benefits', 'Balances & savings'],
+}
 
 /** Guide starting points: auto-route only when both floors are met. */
 export const CONFIDENCE_FLOOR = 0.6
@@ -36,9 +39,10 @@ export interface JevTriage {
   routed: boolean
 }
 
-export function sensitivityLabel(score: number): string {
-  const index = Math.min(SENSITIVITY_LABELS.length - 1, Math.max(0, Math.round(score)))
-  return SENSITIVITY_LABELS[index]
+export function sensitivityLabel(score: number, language: Language = 'es'): string {
+  const labels = SENSITIVITY_LABELS[language]
+  const index = Math.min(labels.length - 1, Math.max(0, Math.round(score)))
+  return labels[index]
 }
 
 export function jevSystemNote(triage: JevTriage): string {

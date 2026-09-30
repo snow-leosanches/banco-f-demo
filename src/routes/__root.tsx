@@ -3,6 +3,7 @@ import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import appCss from '../styles.css?url'
 import { SnowplowInit } from '@/components/snowplow-init'
 import { AssistantProvider } from '@/contexts/assistant-context'
+import { LanguageProvider } from '@/contexts/language-context'
 import { Header } from '@/components/Header'
 import DemoFooter from '@/components/DemoFooter'
 import { AssistantSidebar } from '@/components/AssistantSidebar'
@@ -40,20 +41,22 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <SnowplowInit>
-          <AssistantProvider>
-            <div className="flex min-h-screen flex-col bg-background">
-              <Header />
-              <main className="flex-1">{children}</main>
-              <DemoFooter />
-            </div>
-            <AssistantSidebar />
-            <InterventionOrb />
-            <ChatFab />
-            <SignalsPanel />
-            <ConsentManager />
-          </AssistantProvider>
-        </SnowplowInit>
+        <LanguageProvider>
+          <SnowplowInit>
+            <AssistantProvider>
+              <div className="flex min-h-screen flex-col bg-background">
+                <Header />
+                <main className="flex-1">{children}</main>
+                <DemoFooter />
+              </div>
+              <AssistantSidebar />
+              <InterventionOrb />
+              <ChatFab />
+              <SignalsPanel />
+              <ConsentManager />
+            </AssistantProvider>
+          </SnowplowInit>
+        </LanguageProvider>
 
         <Scripts />
       </body>

@@ -6,6 +6,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import type {} from '@tanstack/react-start'
 import { streamText, isStepCount } from 'ai'
 
+import type { Language } from '@/contexts/language-context'
 import { type Customer } from '@/lib/config'
 import { getBenefitsSignalsContext } from '@/lib/signals-server'
 import { assembleContext, buildSystemPrompt, type ClientBehaviorSnapshot } from '@/lib/agent-prompt'
@@ -33,11 +34,18 @@ const TOOLS_BY_INTENT = {
   c3: ['getMonthlyBalances', 'getSpendingBreakdown', 'getBenefitOptionHistory'],
 } as const satisfies Record<IntentClass, readonly (keyof typeof agentTools)[]>
 
-const GUEST_CUSTOMER: Customer = {
-  customerId: GUEST_USER_ID,
-  firstName: 'Cliente',
-  cmrTier: null,
-  comuna: 'Santiago',
+function guestCustomer(language: Language): Customer {
+  return {
+    customerId: GUEST_USER_ID,
+    firstName: language === 'en' ? 'Customer' : 'Cliente',
+    cmrTier: null,
+    comuna: 'Santiago',
+  }
+}
+
+const NO_ANSWER_MESSAGE: Record<Language, string> = {
+  es: 'No pude generar una respuesta en este momento (revisa la configuración del modelo). Intenta nuevamente en unos segundos.',
+  en: "I couldn't generate a response right now (check the model configuration). Please try again in a few seconds.",
 }
 
 interface ChatRequestBody {
@@ -48,6 +56,7 @@ interface ChatRequestBody {
   jevEnabled?: boolean
   clientBehavior: ClientBehaviorSnapshot
   customer: Customer | null
+  language?: Language
 }
 
 export const Route = createFileRoute('/api/chat')({
@@ -55,10 +64,11 @@ export const Route = createFileRoute('/api/chat')({
     handlers: {
       POST: async ({ request }) => {
         const body = (await request.json()) as ChatRequestBody
+        const language: Language = body.language === 'en' ? 'en' : 'es'
 
-        const customer = body.customer ?? GUEST_CUSTOMER
+        const customer = body.customer ?? guestCustomer(language)
 
-        const signals = body.signalsEnabled && customer.customerId !== GUEST_CUSTOMER.customerId
+        const signals = body.signalsEnabled && customer.customerId !== GUEST_USER_ID
           ? await getBenefitsSignalsContext({
               customerId: customer.customerId,
               domainUserId: body.domainUserId ?? null,
@@ -67,13 +77,13 @@ export const Route = createFileRoute('/api/chat')({
           : { groupAttributes: null, agenticNarrative: null, available: false }
 
         const context = body.signalsEnabled
-          ? assembleContext({ customer, signals, clientBehavior: body.clientBehavior })
+          ? assembleContext({ customer, signals, clientBehavior: body.clientBehavior, language })
           : ({ contextBlock: null, contextSource: 'none', agenticNarrative: null } as const)
 
         let jev: JevTriage | null = null
         if (body.jevEnabled) {
           try {
-            jev = await triageQuestion(body.message, request.signal)
+            jev = await triageQuestion(body.message, language, request.signal)
           } catch (error) {
             if (request.signal.aborted) {
               return new Response(null, { status: 499 })
@@ -82,7 +92,9 @@ export const Route = createFileRoute('/api/chat')({
           }
         }
 
-        const systemPrompt = jev ? `${buildSystemPrompt(context)}\n\n${jevSystemNote(jev)}` : buildSystemPrompt(context)
+        const systemPrompt = jev
+          ? `${buildSystemPrompt(context, language)}\n\n${jevSystemNote(jev)}`
+          : buildSystemPrompt(context, language)
 
         const result = streamText({
           model: 'anthropic/claude-haiku-4.5',
@@ -138,10 +150,7 @@ export const Route = createFileRoute('/api/chat')({
               console.error('[api/chat] streamText failed', error)
             } finally {
               if (!sawAnyText) {
-                safeEnqueue(
-                  controller,
-                  'No pude generar una respuesta en este momento (revisa la configuración del modelo). Intenta nuevamente en unos segundos.',
-                )
+                safeEnqueue(controller, NO_ANSWER_MESSAGE[language])
               }
               if (!clientGone) {
                 try {

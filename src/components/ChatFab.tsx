@@ -3,9 +3,11 @@
 import { MessageCircle } from 'lucide-react'
 
 import { useAssistant } from '@/contexts/assistant-context'
+import { useLanguage } from '@/contexts/language-context'
 
 export function ChatFab() {
   const { isOpen, toggleOpen } = useAssistant()
+  const { language } = useLanguage()
 
   if (isOpen) return null
 
@@ -13,7 +15,7 @@ export function ChatFab() {
     <button
       type="button"
       onClick={toggleOpen}
-      aria-label="Contáctanos"
+      aria-label={language === 'en' ? 'Contact us' : 'Contáctanos'}
       className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#4a4f54] text-white shadow-lg transition-transform hover:scale-105"
     >
       <MessageCircle className="h-6 w-6" strokeWidth={1.75} />

@@ -13,6 +13,12 @@ import type { JevTriage } from '@/lib/jev-decision'
 import { SIGNALS_INTERVENTION_NAME } from '@/lib/signals-definitions'
 import { getSnowplowDomainUserId, trackAssistantMessageSent } from '@/lib/snowplow-config'
 import { useUser } from '@/contexts/user-context'
+import { useLanguage } from '@/contexts/language-context'
+
+const CONNECTION_ERROR_MESSAGE = {
+  es: 'No pude conectarme con el asistente. Intenta nuevamente en unos segundos.',
+  en: "I couldn't connect to the assistant. Please try again in a few seconds.",
+} as const
 
 const CTX_START = '__CTX__'
 const CTX_END = '__ENDCTX__'
@@ -58,6 +64,7 @@ const AssistantContext = createContext<AssistantContextValue | null>(null)
 
 export function AssistantProvider({ children }: { children: ReactNode }) {
   const { customer } = useUser()
+  const { language } = useLanguage()
   const [isOpen, setIsOpen] = useState(false)
   const [answerEngine, setAnswerEngine] = useState<AnswerEngine>('claude')
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -177,6 +184,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             jevEnabled: answerEngine === 'jev',
             clientBehavior: getClientBehaviorSnapshot(),
             customer,
+            language,
           }),
         })
 
@@ -241,7 +249,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           const next = [...prev]
           next[assistantIndex.current] = {
             role: 'assistant',
-            content: 'No pude conectarme con el asistente. Intenta nuevamente en unos segundos.',
+            content: CONNECTION_ERROR_MESSAGE[language],
           }
           return next
         })
@@ -250,7 +258,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         setIsSending(false)
       }
     },
-    [getClientBehaviorSnapshot, customer, answerEngine],
+    [getClientBehaviorSnapshot, customer, answerEngine, language],
   )
 
   return (

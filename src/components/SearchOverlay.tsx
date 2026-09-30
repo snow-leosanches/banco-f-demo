@@ -5,9 +5,12 @@ import { Link } from '@tanstack/react-router'
 import { Search, X } from 'lucide-react'
 
 import { benefits, formatBenefitOffer } from '@/lib/config'
+import { useLanguage } from '@/contexts/language-context'
+import { translateBenefit, translateCategory } from '@/lib/i18n/catalog'
 
 export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('')
+  const { language } = useLanguage()
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -32,31 +35,41 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="¿Qué estás buscando?"
+            placeholder={language === 'en' ? 'What are you looking for?' : '¿Qué estás buscando?'}
             className="flex-1 bg-transparent text-body text-text outline-none placeholder:text-text-secondary"
           />
-          <button type="button" onClick={onClose} aria-label="Cerrar búsqueda" className="text-text-secondary">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={language === 'en' ? 'Close search' : 'Cerrar búsqueda'}
+            className="text-text-secondary"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
-        <p className="mt-4 text-small font-medium text-text-secondary">Lo más buscado</p>
+        <p className="mt-4 text-small font-medium text-text-secondary">
+          {language === 'en' ? 'Most searched' : 'Lo más buscado'}
+        </p>
         <ul className="mt-2 divide-y divide-border">
-          {results.map((b) => (
-            <li key={b.id}>
-              <Link
-                to="/beneficios/$benefitId"
-                params={{ benefitId: b.id }}
-                onClick={onClose}
-                className="flex items-center justify-between py-3 text-small hover:text-secondary"
-              >
-                <span>
-                  <span className="font-medium text-text">{b.merchant}</span>
-                  <span className="ml-2 text-text-secondary">{b.category}</span>
-                </span>
-                <span className="font-semibold text-secondary">{formatBenefitOffer(b)}</span>
-              </Link>
-            </li>
-          ))}
+          {results.map((raw) => {
+            const b = translateBenefit(raw, language)
+            return (
+              <li key={b.id}>
+                <Link
+                  to="/beneficios/$benefitId"
+                  params={{ benefitId: b.id }}
+                  onClick={onClose}
+                  className="flex items-center justify-between py-3 text-small hover:text-secondary"
+                >
+                  <span>
+                    <span className="font-medium text-text">{b.merchant}</span>
+                    <span className="ml-2 text-text-secondary">{translateCategory(b.category, language)}</span>
+                  </span>
+                  <span className="font-semibold text-secondary">{formatBenefitOffer(b, language)}</span>
+                </Link>
+              </li>
+            )
+          })}
         </ul>
       </div>
     </div>

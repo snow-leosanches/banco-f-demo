@@ -7,11 +7,14 @@ import { ChevronDown, Menu, Search, X } from 'lucide-react'
 import { siteConfig, type MegaItem } from '@/lib/config'
 import { useAssistant } from '@/contexts/assistant-context'
 import { useUser } from '@/contexts/user-context'
+import { useLanguage } from '@/contexts/language-context'
+import { translateLabel } from '@/lib/i18n/nav'
 import { cn } from '@/lib/utils'
 import { Logo } from '@/components/Logo'
 import { SearchOverlay } from '@/components/SearchOverlay'
 
 export function Header() {
+  const { language } = useLanguage()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const [searchOpen, setSearchOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -37,22 +40,23 @@ export function Header() {
               className="hidden h-10 items-center gap-2 rounded-full border border-[rgba(27,48,82,0.3)] px-4 text-small font-normal text-secondary lg:inline-flex"
             >
               <Search className="h-4 w-4" />
-              Buscar
+              {language === 'en' ? 'Search' : 'Buscar'}
             </button>
             <Link
               to="/beneficios"
               className="hidden h-10 items-center rounded-full border-[1.5px] border-hazteBg bg-hazteBg px-4 text-small font-medium text-primary lg:inline-flex"
             >
-              Hazte cliente
+              {language === 'en' ? 'Become a client' : 'Hazte cliente'}
             </Link>
-            <div className="hidden lg:block">
+            <div className="hidden items-center gap-3 lg:flex">
               <LoginControl />
+              <LanguageToggle />
             </div>
             <button
               type="button"
               className="inline-flex h-10 w-10 items-center justify-center text-text lg:hidden"
               onClick={() => setMobileOpen((v) => !v)}
-              aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
+              aria-label={mobileOpen ? (language === 'en' ? 'Close menu' : 'Cerrar menú') : language === 'en' ? 'Open menu' : 'Abrir menú'}
             >
               {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -82,6 +86,7 @@ export function Header() {
 }
 
 function UtilityBar() {
+  const { language } = useLanguage()
   return (
     <nav className="hidden h-10 bg-navDark lg:block">
       <div className="mx-auto flex h-full max-w-page items-center justify-between px-6 lg:px-24">
@@ -95,7 +100,7 @@ function UtilityBar() {
                 i === 0 && 'bg-white/40 text-white',
               )}
             >
-              {item.label}
+              {translateLabel(item.label, language)}
             </Link>
           ))}
         </div>
@@ -108,12 +113,26 @@ function UtilityBar() {
               rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
               className="flex h-full items-center px-3.5 text-[13px] font-medium text-white/75 hover:text-white"
             >
-              {item.label}
+              {translateLabel(item.label, language)}
             </a>
           ))}
         </div>
       </div>
     </nav>
+  )
+}
+
+function LanguageToggle() {
+  const { language, toggleLanguage } = useLanguage()
+  return (
+    <button
+      type="button"
+      onClick={toggleLanguage}
+      aria-label={language === 'en' ? 'Switch to Spanish' : 'Cambiar a inglés'}
+      className="inline-flex h-10 items-center rounded-full border border-[rgba(27,48,82,0.3)] px-3 text-small font-medium text-secondary"
+    >
+      {language === 'en' ? 'EN' : 'ES'}
+    </button>
   )
 }
 
@@ -130,6 +149,7 @@ function MegaNavItem({
   onOpen: () => void
   onClose: () => void
 }) {
+  const { language } = useLanguage()
   const active = item.href ? pathname.startsWith(item.href) : false
 
   return (
@@ -142,7 +162,7 @@ function MegaNavItem({
             (open || active) && 'text-primary',
           )}
         >
-          {item.label}
+          {translateLabel(item.label, language)}
         </Link>
       ) : (
         <button
@@ -152,7 +172,7 @@ function MegaNavItem({
             open && 'text-primary',
           )}
         >
-          {item.label}
+          {translateLabel(item.label, language)}
         </button>
       )}
 
@@ -161,12 +181,12 @@ function MegaNavItem({
           <div className="grid gap-8" style={{ gridTemplateColumns: `repeat(${item.columns.length}, minmax(0, 1fr))` }}>
             {item.columns.map((col) => (
               <div key={col.title}>
-                <p className="mb-3 text-small font-semibold text-text">{col.title}</p>
+                <p className="mb-3 text-small font-semibold text-text">{translateLabel(col.title, language)}</p>
                 <ul className="space-y-2">
                   {col.links.map((link) => (
                     <li key={link.label}>
                       <Link to={link.href} className="text-small text-text-secondary hover:text-secondary">
-                        {link.label}
+                        {translateLabel(link.label, language)}
                       </Link>
                     </li>
                   ))}
@@ -182,6 +202,7 @@ function MegaNavItem({
 
 function LoginControl() {
   const { user, customer, isLoading, logout } = useUser()
+  const { language } = useLanguage()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   if (isLoading) {
@@ -202,7 +223,7 @@ function LoginControl() {
           onClick={logout}
           className="text-small font-medium text-text-secondary hover:text-primary"
         >
-          Cerrar sesión
+          {language === 'en' ? 'Log out' : 'Cerrar sesión'}
         </button>
       </div>
     )
@@ -214,7 +235,7 @@ function LoginControl() {
       search={{ returnUrl: pathname }}
       className="inline-flex h-10 items-center rounded-full bg-secondary px-4 text-small font-medium text-white hover:bg-highlight"
     >
-      Iniciar sesión
+      {language === 'en' ? 'Log in' : 'Iniciar sesión'}
     </Link>
   )
 }
@@ -222,6 +243,7 @@ function LoginControl() {
 function MobileMenu({ onClose, onSearch }: { onClose: () => void; onSearch: () => void }) {
   const { toggleOpen } = useAssistant()
   const { user, customer, isLoading, logout } = useUser()
+  const { language, toggleLanguage } = useLanguage()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const [expanded, setExpanded] = useState<string | null>(null)
 
@@ -230,7 +252,7 @@ function MobileMenu({ onClose, onSearch }: { onClose: () => void; onSearch: () =
       {!isLoading && user && (
         <div className="flex items-center gap-3 border-b border-border px-6 py-4">
           <span className="text-small text-text-secondary">
-            Hola, {customer?.firstName || user.name || user.email}
+            {language === 'en' ? 'Hi' : 'Hola'}, {customer?.firstName || user.name || user.email}
             {customer?.cmrTier ? ` · ${customer.cmrTier}` : ''}
           </span>
         </div>
@@ -241,7 +263,7 @@ function MobileMenu({ onClose, onSearch }: { onClose: () => void; onSearch: () =
           onClick={onClose}
           className="flex-1 rounded-full border-[1.5px] border-hazteBg bg-hazteBg py-2.5 text-center text-small font-medium text-primary"
         >
-          Hazte cliente
+          {language === 'en' ? 'Become a client' : 'Hazte cliente'}
         </Link>
         {!isLoading && user ? (
           <Link
@@ -249,7 +271,7 @@ function MobileMenu({ onClose, onSearch }: { onClose: () => void; onSearch: () =
             onClick={onClose}
             className="flex-1 rounded-full bg-secondary py-2.5 text-center text-small font-medium text-white"
           >
-            Mi Cuenta
+            {language === 'en' ? 'My Account' : 'Mi Cuenta'}
           </Link>
         ) : (
           <Link
@@ -258,7 +280,7 @@ function MobileMenu({ onClose, onSearch }: { onClose: () => void; onSearch: () =
             onClick={onClose}
             className="flex-1 rounded-full bg-secondary py-2.5 text-center text-small font-medium text-white"
           >
-            Iniciar sesión
+            {language === 'en' ? 'Log in' : 'Iniciar sesión'}
           </Link>
         )}
       </div>
@@ -270,7 +292,14 @@ function MobileMenu({ onClose, onSearch }: { onClose: () => void; onSearch: () =
         }}
         className="flex w-full items-center gap-2 px-6 py-3 text-small text-secondary"
       >
-        <Search className="h-4 w-4" /> Buscar
+        <Search className="h-4 w-4" /> {language === 'en' ? 'Search' : 'Buscar'}
+      </button>
+      <button
+        type="button"
+        onClick={toggleLanguage}
+        className="flex w-full items-center gap-2 border-t border-border px-6 py-3 text-small text-secondary"
+      >
+        {language === 'en' ? 'Switch to Español' : 'Switch to English'}
       </button>
       {siteConfig.navigation.megaMenu.map((item) => (
         <div key={item.label} className="border-t border-border">
@@ -279,14 +308,16 @@ function MobileMenu({ onClose, onSearch }: { onClose: () => void; onSearch: () =
             className="flex w-full items-center justify-between px-6 py-3 text-left text-small font-semibold text-text"
             onClick={() => setExpanded((v) => (v === item.label ? null : item.label))}
           >
-            {item.label}
+            {translateLabel(item.label, language)}
             <ChevronDown className={cn('h-4 w-4 transition-transform', expanded === item.label && 'rotate-180')} />
           </button>
           {expanded === item.label && (
             <div className="space-y-4 px-6 pb-4">
               {item.columns.map((col) => (
                 <div key={col.title}>
-                  <p className="mb-1 text-[12px] font-semibold uppercase tracking-wide text-text-secondary">{col.title}</p>
+                  <p className="mb-1 text-[12px] font-semibold uppercase tracking-wide text-text-secondary">
+                    {translateLabel(col.title, language)}
+                  </p>
                   {col.links.map((link) => (
                     <Link
                       key={link.label}
@@ -294,7 +325,7 @@ function MobileMenu({ onClose, onSearch }: { onClose: () => void; onSearch: () =
                       onClick={onClose}
                       className="block py-1 text-small text-text"
                     >
-                      {link.label}
+                      {translateLabel(link.label, language)}
                     </Link>
                   ))}
                 </div>
@@ -312,7 +343,7 @@ function MobileMenu({ onClose, onSearch }: { onClose: () => void; onSearch: () =
           }}
           className="w-full border-t border-border px-6 py-4 text-left text-small font-medium text-primary"
         >
-          Cerrar sesión
+          {language === 'en' ? 'Log out' : 'Cerrar sesión'}
         </button>
       )}
       <button
@@ -323,7 +354,7 @@ function MobileMenu({ onClose, onSearch }: { onClose: () => void; onSearch: () =
         }}
         className="w-full border-t border-border px-6 py-4 text-left text-small font-medium text-secondary"
       >
-        Hablar con el Asistente
+        {language === 'en' ? 'Talk to the Assistant' : 'Hablar con el Asistente'}
       </button>
     </div>
   )

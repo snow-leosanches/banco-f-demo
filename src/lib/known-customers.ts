@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker/locale/es'
 
+import type { Language } from '@/contexts/language-context'
 import { currentCustomer, type CmrTier } from './config'
 import { CAMILA_USER_ID, DIEGO_USER_ID, VALENTINA_USER_ID } from './user-id'
 
@@ -12,8 +13,8 @@ export type KnownCustomer = {
   phone: string
   cmrTier: CmrTier | null
   comuna: string
-  benefitsLabel: string
-  savingsLabel: string
+  benefitsLabel: Record<Language, string>
+  savingsLabel: Record<Language, string>
 }
 
 export const COMUNAS = [
@@ -39,8 +40,8 @@ export const knownCustomers: KnownCustomer[] = [
     phone: '+56922222222',
     cmrTier: null,
     comuna: 'Maipú',
-    benefitsLabel: 'pocos beneficios',
-    savingsLabel: 'sueldo más bajo',
+    benefitsLabel: { es: 'pocos beneficios', en: 'few benefits' },
+    savingsLabel: { es: 'sueldo más bajo', en: 'lower salary' },
   },
   {
     // Fixed GUIDs (not random) so these identities stay stable across demo
@@ -54,8 +55,8 @@ export const knownCustomers: KnownCustomer[] = [
     phone: '+56911111111',
     cmrTier: currentCustomer.cmrTier,
     comuna: currentCustomer.comuna,
-    benefitsLabel: 'algunos beneficios',
-    savingsLabel: 'más gasto este mes',
+    benefitsLabel: { es: 'algunos beneficios', en: 'some benefits' },
+    savingsLabel: { es: 'más gasto este mes', en: 'higher spend this month' },
   },
   {
     id: VALENTINA_USER_ID,
@@ -66,8 +67,8 @@ export const knownCustomers: KnownCustomer[] = [
     phone: '+56933333333',
     cmrTier: 'CMR Elite',
     comuna: 'Las Condes',
-    benefitsLabel: 'todos los beneficios',
-    savingsLabel: 'cambió su opción de beneficios',
+    benefitsLabel: { es: 'todos los beneficios', en: 'all the benefits' },
+    savingsLabel: { es: 'cambió su opción de beneficios', en: 'changed her benefit option' },
   },
 ]
 
