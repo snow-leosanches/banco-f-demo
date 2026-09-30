@@ -14,11 +14,19 @@ import {
 export type { IntentClass, JevTriage } from '@/lib/jev-decision'
 export { jevSystemNote } from '@/lib/jev-decision'
 
-function readTypesafeConfidence(metadata: { typesafe?: unknown } | undefined, questionId: string): number | null {
+function readTypesafeConfidence(
+  metadata: { typesafe?: unknown } | undefined,
+  questionId: string,
+): number | null {
   const typesafe = metadata?.typesafe
   if (!typesafe || typeof typesafe !== 'object') return null
   const confidence = (typesafe as { confidence?: unknown }).confidence
-  if (!confidence || typeof confidence !== 'object' || Array.isArray(confidence)) return null
+  if (
+    !confidence ||
+    typeof confidence !== 'object' ||
+    Array.isArray(confidence)
+  )
+    return null
   const value = (confidence as Record<string, unknown>)[questionId]
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
@@ -38,17 +46,19 @@ export async function triageQuestion(
     questions: {
       intent: {
         type: 'choice',
-        instructions: 'Classify this Banco Falabella assistant question into exactly one class.',
+        instructions:
+          'Classify this Banco Falabella assistant question into exactly one class.',
         criteria: {
           c0: 'Asks what a product or concept is (fondo mutuo, CMR, Fpuntos, cuenta, depósito a plazo, crédito). Informational, not about their own products.',
           c1: 'Asks where to find a screen in this web demo (beneficios, cuenta, chat, login). Navigation, not a list of their benefits.',
-          c2: 'Asks about their benefits, discounts they already have, recent benefit or merchant visits, what to look at next, or which merchants suit them.',
+          c2: 'Asks about their benefits, discounts they already have, recent benefit or merchant visits, what to look at next, which merchants suit them, or for more, other, or different benefit or merchant suggestions.',
           c3: 'Asks why they saved less this month, or about balances, spending, salary, or a change in how a benefit is applied.',
         },
       },
       needsPersonalData: {
         type: 'boolean',
-        instructions: 'Does a correct answer require this customer’s own balances, entitlements, visits, or spending?',
+        instructions:
+          'Does a correct answer require this customer’s own balances, entitlements, visits, or spending?',
         criteria: {
           true: 'The answer depends on this customer’s data.',
           false: 'A general definition or an in-app location is enough.',

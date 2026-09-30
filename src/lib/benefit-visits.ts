@@ -23,6 +23,10 @@ export type VisitedBenefit = {
 export type RecentBenefitVisits = {
   source: VisitSource
   visits: VisitedBenefit[]
+  /** Catalog ids from Signals `benefits_visited_last_1h`, plus the local snapshot. */
+  visitedBenefitIds: string[]
+  /** Merchant names from Signals `merchants_visited_last_1h`, plus the local snapshot. */
+  visitedMerchantNames: string[]
   categoriesViewed: string[]
   lastMerchantViewed: string | null
   note?: string
@@ -50,7 +54,11 @@ function benefitsForMerchant(merchant: string): Benefit[] {
   return benefits.filter((b) => b.merchant.toLowerCase() === needle)
 }
 
-function resolveFromIdsAndMerchants(ids: string[], merchants: string[], customerId: string): VisitedBenefit[] {
+function resolveFromIdsAndMerchants(
+  ids: string[],
+  merchants: string[],
+  customerId: string,
+): VisitedBenefit[] {
   const seen = new Set<string>()
   const out: VisitedBenefit[] = []
 
@@ -76,7 +84,10 @@ function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.filter(Boolean))]
 }
 
-function mergeVisits(primary: VisitedBenefit[], extra: VisitedBenefit[]): VisitedBenefit[] {
+function mergeVisits(
+  primary: VisitedBenefit[],
+  extra: VisitedBenefit[],
+): VisitedBenefit[] {
   const seen = new Set(primary.map((item) => item.id))
   const merged = [...primary]
   for (const item of extra) {
@@ -97,6 +108,8 @@ export async function loadRecentBenefitVisits(params: {
     return {
       source: 'none',
       visits: [],
+      visitedBenefitIds: [],
+      visitedMerchantNames: [],
       categoriesViewed: [],
       lastMerchantViewed: null,
       note: 'Signals está apagado. No uses comportamiento reciente para personalizar.',
@@ -110,31 +123,67 @@ export async function loadRecentBenefitVisits(params: {
   const memory = groups.memory ? parseCustomerMemory(groups.memory) : null
   const visit = groups.visit ? parseSessionBehavior(groups.visit) : null
 
-  const signalIds = hasCustomerMemory(memory) ? (memory?.benefits_visited_last_1h ?? []) : []
+  const signalIds = hasCustomerMemory(memory)
+    ? (memory?.benefits_visited_last_1h ?? [])
+    : []
   const signalMerchants = [
-    ...(hasCustomerMemory(memory) ? (memory?.merchants_visited_last_1h ?? []) : []),
-    ...(hasSessionBehavior(visit) && visit?.last_merchant_viewed ? [visit.last_merchant_viewed] : []),
+    ...(hasCustomerMemory(memory)
+      ? (memory?.merchants_visited_last_1h ?? [])
+      : []),
+    ...(hasSessionBehavior(visit) && visit?.last_merchant_viewed
+      ? [visit.last_merchant_viewed]
+      : []),
   ]
-  const signalCategories = hasSessionBehavior(visit) ? (visit?.categories_viewed_last_30m ?? []) : []
+  const signalCategories = hasSessionBehavior(visit)
+    ? (visit?.categories_viewed_last_30m ?? [])
+    : []
   const local = params.clientBehavior
   const localVisits = resolveFromIdsAndMerchants(
     local.benefitsVisitedLast1h,
-    [...local.merchantsVisitedLast1h, ...(local.lastMerchantViewed ? [local.lastMerchantViewed] : [])],
+    [
+      ...local.merchantsVisitedLast1h,
+      ...(local.lastMerchantViewed ? [local.lastMerchantViewed] : []),
+    ],
     params.customerId,
   )
-  const fromSignals = resolveFromIdsAndMerchants(signalIds, signalMerchants, params.customerId)
+  const fromSignals = resolveFromIdsAndMerchants(
+    signalIds,
+    signalMerchants,
+    params.customerId,
+  )
   const visits = mergeVisits(fromSignals, localVisits)
-  const categoriesViewed = uniqueStrings([...signalCategories, ...local.categoriesViewedLast30m])
-  const lastMerchantViewed = visit?.last_merchant_viewed ?? local.lastMerchantViewed ?? visits.at(-1)?.merchant ?? null
+  const visitedBenefitIds = uniqueStrings([
+    ...signalIds,
+    ...local.benefitsVisitedLast1h,
+  ])
+  const visitedMerchantNames = uniqueStrings([
+    ...(hasCustomerMemory(memory)
+      ? (memory?.merchants_visited_last_1h ?? [])
+      : []),
+    ...local.merchantsVisitedLast1h,
+  ])
+  const categoriesViewed = uniqueStrings([
+    ...signalCategories,
+    ...local.categoriesViewedLast30m,
+  ])
+  const lastMerchantViewed =
+    visit?.last_merchant_viewed ??
+    local.lastMerchantViewed ??
+    visits.at(-1)?.merchant ??
+    null
 
   if (fromSignals.length > 0 || signalCategories.length > 0) {
     return {
       source: 'signals',
       visits,
+      visitedBenefitIds,
+      visitedMerchantNames,
       categoriesViewed,
       lastMerchantViewed,
       ...(localVisits.length > 0 && fromSignals.length < localVisits.length
-        ? { note: 'Signals aún no trae todos los ids de esta visita; se unieron las páginas abiertas ahora.' }
+        ? {
+            note: 'Signals aún no trae todos los ids de esta visita; se unieron las páginas abiertas ahora.',
+          }
         : {}),
     }
   }
@@ -143,6 +192,8 @@ export async function loadRecentBenefitVisits(params: {
     return {
       source: 'local-fallback',
       visits: localVisits,
+      visitedBenefitIds,
+      visitedMerchantNames,
       categoriesViewed: local.categoriesViewedLast30m,
       lastMerchantViewed: local.lastMerchantViewed,
       note: 'Signals aún no tiene visitas; usa este fallback local de la visita actual. No inventes memoria de la última hora.',
@@ -152,6 +203,8 @@ export async function loadRecentBenefitVisits(params: {
   return {
     source: groups.reachedSignals ? 'signals' : 'none',
     visits: [],
+    visitedBenefitIds,
+    visitedMerchantNames,
     categoriesViewed: [],
     lastMerchantViewed: null,
     note: 'No hay visitas a beneficios todavía. No inventes comercios ni páginas vistas.',

@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { getDomainSessionId } from '@snowplow/browser-tracker'
 
 import type { BenefitCategory } from '@/lib/config'
@@ -11,7 +19,10 @@ import {
 } from '@/lib/intervention-log'
 import type { JevTriage } from '@/lib/jev-decision'
 import { SIGNALS_INTERVENTION_NAME } from '@/lib/signals-definitions'
-import { getSnowplowDomainUserId, trackAssistantMessageSent } from '@/lib/snowplow-config'
+import {
+  getSnowplowDomainUserId,
+  trackAssistantMessageSent,
+} from '@/lib/snowplow-config'
 import { useUser } from '@/contexts/user-context'
 import { useLanguage } from '@/contexts/language-context'
 
@@ -55,7 +66,11 @@ interface AssistantContextValue {
   answerEngine: AnswerEngine
   setAnswerEngine: (engine: AnswerEngine) => void
   sendMessage: (text: string) => Promise<void>
-  recordBenefitView: (category: BenefitCategory, merchant?: string, benefitId?: string) => void
+  recordBenefitView: (
+    category: BenefitCategory,
+    merchant?: string,
+    benefitId?: string,
+  ) => void
   orbVisible: boolean
   dismissOrb: () => void
 }
@@ -73,6 +88,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
   const behaviorRef = useRef<BehaviorEvent[]>([])
   const orbShownRef = useRef(false)
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
 
   const customerId = customer?.customerId ?? null
   const maybeShowTravelOrb = useCallback(() => {
@@ -92,8 +109,17 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   }, [customerId])
 
   const recordBenefitView = useCallback(
-    (category: BenefitCategory, merchant: string = '(catálogo)', benefitId?: string) => {
-      behaviorRef.current.push({ category, merchant, benefitId, at: Date.now() })
+    (
+      category: BenefitCategory,
+      merchant: string = '(catálogo)',
+      benefitId?: string,
+    ) => {
+      behaviorRef.current.push({
+        category,
+        merchant,
+        benefitId,
+        at: Date.now(),
+      })
       if (category === 'Viajes') maybeShowTravelOrb()
     },
     [maybeShowTravelOrb],
@@ -107,6 +133,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       behaviorRef.current = []
       orbShownRef.current = false
       setOrbVisible(false)
+      setMessages([])
       clearInterventionTriggers()
     }
     if (!customerId) return
@@ -117,7 +144,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     return subscribeInterventionTriggers(() => {
       if (!customerId || !isSignalsEnabled() || orbShownRef.current) return
       const delivered = getInterventionTriggers().some(
-        (trigger) => trigger.source === 'signals' && trigger.name === SIGNALS_INTERVENTION_NAME,
+        (trigger) =>
+          trigger.source === 'signals' &&
+          trigger.name === SIGNALS_INTERVENTION_NAME,
       )
       if (!delivered) return
       orbShownRef.current = true
@@ -129,24 +158,41 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
   const getClientBehaviorSnapshot = useCallback(() => {
     const now = Date.now()
-    const last30m = behaviorRef.current.filter((e) => now - e.at <= THIRTY_MINUTES_MS)
-    const last10m = behaviorRef.current.filter((e) => now - e.at <= TEN_MINUTES_MS)
+    const last30m = behaviorRef.current.filter(
+      (e) => now - e.at <= THIRTY_MINUTES_MS,
+    )
+    const last10m = behaviorRef.current.filter(
+      (e) => now - e.at <= TEN_MINUTES_MS,
+    )
     const last1h = behaviorRef.current.filter((e) => now - e.at <= ONE_HOUR_MS)
-    const categoriesViewedLast30m = Array.from(new Set(last30m.map((e) => e.category)))
+    const categoriesViewedLast30m = Array.from(
+      new Set(last30m.map((e) => e.category)),
+    )
     const lastMerchantViewed = behaviorRef.current.length
       ? behaviorRef.current[behaviorRef.current.length - 1].merchant
       : null
-    const travelPagesLast10m = last10m.filter((e) => e.category === 'Viajes').length
+    const travelPagesLast10m = last10m.filter(
+      (e) => e.category === 'Viajes',
+    ).length
     const benefitsVisitedLast1h = Array.from(
-      new Set(last1h.map((e) => e.benefitId).filter((id): id is string => Boolean(id))),
+      new Set(
+        last1h
+          .map((e) => e.benefitId)
+          .filter((id): id is string => Boolean(id)),
+      ),
     )
     const merchantsVisitedLast1h = Array.from(
-      new Set(last1h.map((e) => e.merchant).filter((merchant) => merchant && merchant !== '(catálogo)')),
+      new Set(
+        last1h
+          .map((e) => e.merchant)
+          .filter((merchant) => merchant && merchant !== '(catálogo)'),
+      ),
     )
 
     return {
       categoriesViewedLast30m,
-      lastMerchantViewed: lastMerchantViewed === '(catálogo)' ? null : lastMerchantViewed,
+      lastMerchantViewed:
+        lastMerchantViewed === '(catálogo)' ? null : lastMerchantViewed,
       benefitViewsLast10m: last10m.length,
       travelPagesLast10m,
       benefitsVisitedLast1h,
@@ -156,6 +202,10 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
   const sendMessage = useCallback(
     async (text: string) => {
+      const history = messagesRef.current
+        .filter((message) => message.content.trim())
+        .map((message) => ({ role: message.role, content: message.content }))
+
       setMessages((prev) => [...prev, { role: 'user', content: text }])
       setIsSending(true)
 
@@ -178,6 +228,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: text,
+            history,
             domainSessionId: getDomainSessionId() ?? null,
             domainUserId: getSnowplowDomainUserId(),
             signalsEnabled: isSignalsEnabled(),
@@ -223,11 +274,19 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             }
             buffer = buffer.slice(endIdx + CTX_END.length)
             headerParsed = true
-            trackOnce(jev?.intentGuess ?? (answerEngine === 'jev' ? 'unavailable' : 'benefits_query'))
+            trackOnce(
+              jev?.intentGuess ??
+                (answerEngine === 'jev' ? 'unavailable' : 'benefits_query'),
+            )
 
             setMessages((prev) => {
               const next = [...prev]
-              next[assistantIndex.current] = { ...next[assistantIndex.current], contextSource, contextBlock, jev }
+              next[assistantIndex.current] = {
+                ...next[assistantIndex.current],
+                contextSource,
+                contextBlock,
+                jev,
+              }
               return next
             })
           }
@@ -238,7 +297,10 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             setMessages((prev) => {
               const next = [...prev]
               const existing = next[assistantIndex.current]
-              next[assistantIndex.current] = { ...existing, content: existing.content + chunk }
+              next[assistantIndex.current] = {
+                ...existing,
+                content: existing.content + chunk,
+              }
               return next
             })
           }
@@ -285,6 +347,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
 export function useAssistant(): AssistantContextValue {
   const ctx = useContext(AssistantContext)
-  if (!ctx) throw new Error('useAssistant must be used within an AssistantProvider')
+  if (!ctx)
+    throw new Error('useAssistant must be used within an AssistantProvider')
   return ctx
 }

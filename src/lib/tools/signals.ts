@@ -25,6 +25,9 @@ export const signalsToolContextSchema = z.object({
     benefitsVisitedLast1h: z.array(z.string()).default([]),
     merchantsVisitedLast1h: z.array(z.string()).default([]),
   }),
+  mentionedBenefitIds: z.array(z.string()).default([]),
+  mentionedMerchants: z.array(z.string()).default([]),
+  repeatSuggestions: z.boolean().default(false),
 })
 
 export type SignalsToolContext = {
@@ -32,6 +35,9 @@ export type SignalsToolContext = {
   domainUserId: string | null
   signalsEnabled: boolean
   clientBehavior: ClientBehaviorSnapshot
+  mentionedBenefitIds: string[]
+  mentionedMerchants: string[]
+  repeatSuggestions: boolean
 }
 
 function localVisitAttributes(behavior: ClientBehaviorSnapshot) {
@@ -59,7 +65,10 @@ function hasLocalVisit(behavior: ClientBehaviorSnapshot) {
 function shapeMemory(raw: Record<string, unknown> | null) {
   const parsed = raw ? parseCustomerMemory(raw) : null
   if (!hasCustomerMemory(parsed) || !parsed) return null
-  const avg = estimatedAvgSessionSeconds(parsed.page_pings_last_7d, parsed.sessions_last_7d)
+  const avg = estimatedAvgSessionSeconds(
+    parsed.page_pings_last_7d,
+    parsed.sessions_last_7d,
+  )
   return {
     ...parsed,
     estimated_avg_engaged_session_seconds: avg ?? null,
@@ -106,13 +115,15 @@ export const getSignalsAttributes = tool({
       return {
         source: 'local-fallback' as const,
         note: 'Signals aún no tiene valores; usa este fallback local de la visita actual. No inventes memoria de la última hora.',
-        [ANONYMOUS_ATTRIBUTE_GROUP.name]: localVisitAttributes(context.clientBehavior),
+        [ANONYMOUS_ATTRIBUTE_GROUP.name]: localVisitAttributes(
+          context.clientBehavior,
+        ),
         [IDENTIFIED_ATTRIBUTE_GROUP.name]: null,
       }
     }
 
     return {
-      source: groups.reachedSignals ? 'signals' as const : 'none' as const,
+      source: groups.reachedSignals ? ('signals' as const) : ('none' as const),
       note: 'No hay atributos de comportamiento todavía. No inventes visitas ni comercios.',
       [ANONYMOUS_ATTRIBUTE_GROUP.name]: null,
       [IDENTIFIED_ATTRIBUTE_GROUP.name]: null,

@@ -4,7 +4,10 @@ import { z } from 'zod'
 import { suggestNextBenefits as rankNextBenefits } from '@/lib/benefit-recommendations'
 import { loadRecentBenefitVisits } from '@/lib/benefit-visits'
 import { type Benefit } from '@/lib/config'
-import { getEntitledBenefit, getEntitledBenefits } from '@/lib/customer-benefits'
+import {
+  getEntitledBenefit,
+  getEntitledBenefits,
+} from '@/lib/customer-benefits'
 import { customerContextSchema } from '@/lib/tools/customer-context'
 import { signalsToolContextSchema } from '@/lib/tools/signals'
 
@@ -26,7 +29,10 @@ export const listMyBenefits = tool({
   description:
     'C2: lista los beneficios CMR vigentes de ESTE cliente este mes. Úsala para “qué beneficios tengo”. Llámalas siempre antes de recomendar. No uses un catálogo general: cada login tiene un subconjunto distinto.',
   inputSchema: z.object({
-    category: z.enum(categories).optional().describe('Filtra por categoría si el cliente preguntó por una sola'),
+    category: z
+      .enum(categories)
+      .optional()
+      .describe('Filtra por categoría si el cliente preguntó por una sola'),
   }),
   contextSchema: customerContextSchema,
   execute: async ({ category }, { context }) => {
@@ -35,7 +41,11 @@ export const listMyBenefits = tool({
       count: entitled.length,
       benefits: entitled.map(summarize),
       ...(entitled.length === 0
-        ? { note: category ? `El cliente no tiene beneficios vigentes en ${category} este mes.` : 'El cliente no tiene beneficios vigentes este mes.' }
+        ? {
+            note: category
+              ? `El cliente no tiene beneficios vigentes en ${category} este mes.`
+              : 'El cliente no tiene beneficios vigentes este mes.',
+          }
         : {}),
     }
   },
@@ -45,7 +55,9 @@ export const getBenefitDetails = tool({
   description:
     'Devuelve el detalle y las condiciones de un beneficio SOLO si está vigente para este cliente. Usa el id devuelto por listMyBenefits (ej. turbus, shell).',
   inputSchema: z.object({
-    benefitId: z.string().describe('Id del beneficio, por ejemplo turbus o dunkin'),
+    benefitId: z
+      .string()
+      .describe('Id del beneficio, por ejemplo turbus o dunkin'),
   }),
   contextSchema: customerContextSchema,
   execute: async ({ benefitId }, { context }) => {
@@ -69,14 +81,36 @@ export const getRecentBenefitVisits = tool({
   execute: async (_input, { context }) => loadRecentBenefitVisits(context),
 })
 
+function suggestionOptions(
+  context: {
+    mentionedBenefitIds: string[]
+    mentionedMerchants: string[]
+    repeatSuggestions: boolean
+  },
+  recent: { visitedBenefitIds: string[]; visitedMerchantNames: string[] },
+) {
+  return {
+    visitedBenefitIds: recent.visitedBenefitIds,
+    visitedMerchants: recent.visitedMerchantNames,
+    mentionedBenefitIds: context.mentionedBenefitIds,
+    mentionedMerchants: context.mentionedMerchants,
+    repeatSuggestions: context.repeatSuggestions,
+  }
+}
+
 export const suggestNextBenefits = tool({
   description:
-    'C2: sugiere hasta 3 beneficios vigentes y hasta 3 comercios que el cliente podría querer ver ahora, según lo que tiene (listMyBenefits) y lo que visitó (getRecentBenefitVisits / catálogo). Úsala para “qué me conviene”, “qué me recomiendas”, “qué mirar después”. Nunca sugieras un beneficio o comercio que el cliente no tenga.',
+    'C2: sugiere hasta 3 beneficios vigentes. La primera vez en el chat, benefits_visited_last_1h y merchants_visited_last_1h eligen lo que sigue a cada beneficio o comercio visitado. Si el cliente ya pidió sugerencias, devuelve otros 3 al azar y omite beneficios y comercios ya mencionados. Cita solo este resultado. Nunca sugieras un beneficio que el cliente no tenga.',
   inputSchema: z.object({}),
   contextSchema: signalsToolContextSchema,
   execute: async (_input, { context }) => {
     const recent = await loadRecentBenefitVisits(context)
-    const ranked = rankNextBenefits(context.customerId, recent.visits, recent.categoriesViewed)
+    const ranked = rankNextBenefits(
+      context.customerId,
+      recent.visits,
+      recent.categoriesViewed,
+      suggestionOptions(context, recent),
+    )
     return {
       source: recent.source,
       visited: recent.visits.map((visit) => ({
@@ -92,14 +126,22 @@ export const suggestNextBenefits = tool({
 
 export const suggestNextMerchants = tool({
   description:
-    'C2: sugiere hasta 3 comercios (marcas) vigentes que el cliente podría querer ahora, agrupando el catálogo por merchant. Úsala para “qué comercios me convienen”, “dónde me conviene comprar”, “qué marcas me recomiendas”. Solo comercios con un beneficio vigente que aún no abrió. No inventes marcas del catálogo general.',
+    'C2: sugiere hasta 3 comercios vigentes. La primera vez en el chat, benefits_visited_last_1h y merchants_visited_last_1h eligen el comercio que sigue a cada beneficio o comercio visitado. Si el cliente ya pidió sugerencias, devuelve otros 3 al azar y omite beneficios y comercios ya mencionados en el chat. Cita solo merchants. No inventes marcas.',
   inputSchema: z.object({}),
   contextSchema: signalsToolContextSchema,
   execute: async (_input, { context }) => {
     const recent = await loadRecentBenefitVisits(context)
-    const ranked = rankNextBenefits(context.customerId, recent.visits, recent.categoriesViewed)
+    const ranked = rankNextBenefits(
+      context.customerId,
+      recent.visits,
+      recent.categoriesViewed,
+      suggestionOptions(context, recent),
+    )
     return {
       source: recent.source,
+      ranking: ranked.ranking,
+      signalsUsed: ranked.signalsUsed,
+      alreadyMentionedMerchants: ranked.alreadyMentionedMerchants,
       visitedMerchants: ranked.visitedMerchants,
       merchants: ranked.merchants,
       categoryGaps: ranked.categoryGaps,

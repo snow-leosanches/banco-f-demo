@@ -9,8 +9,22 @@ import { streamText, isStepCount } from 'ai'
 import type { Language } from '@/contexts/language-context'
 import { type Customer } from '@/lib/config'
 import { getBenefitsSignalsContext } from '@/lib/signals-server'
-import { assembleContext, buildSystemPrompt, type ClientBehaviorSnapshot } from '@/lib/agent-prompt'
-import { jevSystemNote, triageQuestion, type IntentClass, type JevTriage } from '@/lib/jev-triage'
+import {
+  assembleContext,
+  buildSystemPrompt,
+  type ClientBehaviorSnapshot,
+} from '@/lib/agent-prompt'
+import {
+  isRepeatSuggestion,
+  mentionsFromHistory,
+  type ChatTurn,
+} from '@/lib/chat-mentions'
+import {
+  jevSystemNote,
+  triageQuestion,
+  type IntentClass,
+  type JevTriage,
+} from '@/lib/jev-triage'
 import { agentTools, agentToolsContext } from '@/lib/tools'
 import { GUEST_USER_ID } from '@/lib/user-id'
 
@@ -50,6 +64,7 @@ const NO_ANSWER_MESSAGE: Record<Language, string> = {
 
 interface ChatRequestBody {
   message: string
+  history?: ChatTurn[]
   domainSessionId: string | null
   domainUserId: string | null
   signalsEnabled: boolean
@@ -59,26 +74,65 @@ interface ChatRequestBody {
   language?: Language
 }
 
+function priorTurns(value: unknown): ChatTurn[] {
+  if (!Array.isArray(value)) return []
+  const turns: ChatTurn[] = []
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue
+    const role = (item as { role?: unknown }).role
+    const content = (item as { content?: unknown }).content
+    if (
+      (role !== 'user' && role !== 'assistant') ||
+      typeof content !== 'string'
+    )
+      continue
+    const trimmed = content.trim()
+    if (!trimmed) continue
+    turns.push({ role, content: trimmed.slice(0, 8000) })
+  }
+  return turns.slice(-24)
+}
+
 export const Route = createFileRoute('/api/chat')({
   server: {
     handlers: {
       POST: async ({ request }) => {
         const body = (await request.json()) as ChatRequestBody
         const language: Language = body.language === 'en' ? 'en' : 'es'
+        const history = priorTurns(body.history)
+        const mentions = mentionsFromHistory([
+          ...history,
+          { role: 'user', content: body.message },
+        ])
+        const repeatSuggestions = isRepeatSuggestion(history, body.message)
 
         const customer = body.customer ?? guestCustomer(language)
 
-        const signals = body.signalsEnabled && customer.customerId !== GUEST_USER_ID
-          ? await getBenefitsSignalsContext({
-              customerId: customer.customerId,
-              domainUserId: body.domainUserId ?? null,
-              domainSessionId: body.domainSessionId,
-            })
-          : { groupAttributes: null, agenticNarrative: null, available: false }
+        const signals =
+          body.signalsEnabled && customer.customerId !== GUEST_USER_ID
+            ? await getBenefitsSignalsContext({
+                customerId: customer.customerId,
+                domainUserId: body.domainUserId ?? null,
+                domainSessionId: body.domainSessionId,
+              })
+            : {
+                groupAttributes: null,
+                agenticNarrative: null,
+                available: false,
+              }
 
         const context = body.signalsEnabled
-          ? assembleContext({ customer, signals, clientBehavior: body.clientBehavior, language })
-          : ({ contextBlock: null, contextSource: 'none', agenticNarrative: null } as const)
+          ? assembleContext({
+              customer,
+              signals,
+              clientBehavior: body.clientBehavior,
+              language,
+            })
+          : ({
+              contextBlock: null,
+              contextSource: 'none',
+              agenticNarrative: null,
+            } as const)
 
         let jev: JevTriage | null = null
         if (body.jevEnabled) {
@@ -88,7 +142,10 @@ export const Route = createFileRoute('/api/chat')({
             if (request.signal.aborted) {
               return new Response(null, { status: 499 })
             }
-            console.error('[api/chat] Jev triage failed; answering with every tool', error)
+            console.error(
+              '[api/chat] Jev triage failed; answering with every tool',
+              error,
+            )
           }
         }
 
@@ -99,7 +156,13 @@ export const Route = createFileRoute('/api/chat')({
         const result = streamText({
           model: 'anthropic/claude-haiku-4.5',
           system: systemPrompt,
-          prompt: body.message,
+          messages: [
+            ...history.map((turn) => ({
+              role: turn.role,
+              content: turn.content,
+            })),
+            { role: 'user' as const, content: body.message },
+          ],
           tools: agentTools,
           activeTools: jev?.routed ? TOOLS_BY_INTENT[jev.intent] : undefined,
           toolsContext: agentToolsContext({
@@ -107,6 +170,9 @@ export const Route = createFileRoute('/api/chat')({
             domainUserId: body.domainUserId ?? null,
             signalsEnabled: body.signalsEnabled,
             clientBehavior: body.clientBehavior,
+            mentionedBenefitIds: mentions.benefitIds,
+            mentionedMerchants: mentions.merchants,
+            repeatSuggestions,
           }),
           stopWhen: isStepCount(8),
           onError: ({ error }) => {
@@ -127,7 +193,10 @@ export const Route = createFileRoute('/api/chat')({
         // it so we stop touching the controller instead of letting that
         // become an unhandled "aborted"/ECONNRESET error at the HTTP layer.
         let clientGone = false
-        const safeEnqueue = (controller: ReadableStreamDefaultController<Uint8Array>, text: string) => {
+        const safeEnqueue = (
+          controller: ReadableStreamDefaultController<Uint8Array>,
+          text: string,
+        ) => {
           if (clientGone) return
           try {
             controller.enqueue(encoder.encode(text))

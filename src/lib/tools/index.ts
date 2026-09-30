@@ -17,6 +17,9 @@ export function agentToolsContext(params: SignalsToolContext) {
     domainUserId: params.domainUserId,
     signalsEnabled: params.signalsEnabled,
     clientBehavior: params.clientBehavior,
+    mentionedBenefitIds: params.mentionedBenefitIds,
+    mentionedMerchants: params.mentionedMerchants,
+    repeatSuggestions: params.repeatSuggestions,
   }
   return {
     ...customerToolsContext(params.customerId),
