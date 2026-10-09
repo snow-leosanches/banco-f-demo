@@ -11,8 +11,21 @@ import {
   type JevTriage,
 } from '@/lib/jev-decision'
 
+import type { ChatTurn } from '@/lib/chat-mentions'
+
 export type { IntentClass, JevTriage } from '@/lib/jev-decision'
 export { jevSystemNote } from '@/lib/jev-decision'
+
+/** Last exchange only: enough to resolve "dame otras" without biasing new topics. */
+const RECENT_TURNS = 2
+const RECENT_TURN_MAX_CHARS = 600
+
+function recentTurns(history: ChatTurn[]): ChatTurn[] {
+  return history.slice(-RECENT_TURNS).map((turn) => ({
+    role: turn.role,
+    content: turn.content.slice(0, RECENT_TURN_MAX_CHARS),
+  }))
+}
 
 function readTypesafeConfidence(
   metadata: { typesafe?: unknown } | undefined,
@@ -33,12 +46,13 @@ function readTypesafeConfidence(
 
 export async function triageQuestion(
   message: string,
+  history: ChatTurn[] = [],
   language: Language = 'es',
   abortSignal?: AbortSignal,
 ): Promise<JevTriage> {
   const result = await evaluate({
     model: 'typesafe-ai/jev',
-    state: { message },
+    state: { message, recentTurns: recentTurns(history) },
     abortSignal,
     providerOptions: {
       gateway: { zeroDataRetention: true },
@@ -47,7 +61,7 @@ export async function triageQuestion(
       intent: {
         type: 'choice',
         instructions:
-          'Classify this Banco Falabella assistant question into exactly one class.',
+          'Classify `message`, the latest Banco Falabella assistant question, into exactly one class. `recentTurns` is the previous exchange: use it only to resolve a short follow-up ("more", "other ones", "and that one?") to the topic it continues. If `message` stands on its own, ignore `recentTurns`.',
         criteria: {
           c0: 'Asks what a product or concept is (fondo mutuo, CMR, Fpuntos, cuenta, depósito a plazo, crédito). Informational, not about their own products.',
           c1: 'Asks where to find a screen in this web demo (beneficios, cuenta, chat, login). Navigation, not a list of their benefits.',

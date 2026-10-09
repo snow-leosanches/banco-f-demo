@@ -11,7 +11,9 @@ export const agentTools = {
   ...signalsTools,
 }
 
-export function agentToolsContext(params: SignalsToolContext) {
+export function agentToolsContext(
+  params: SignalsToolContext & { pickBenefitIds: string[] },
+) {
   const signalsContext = {
     customerId: params.customerId,
     domainUserId: params.domainUserId,
@@ -23,6 +25,10 @@ export function agentToolsContext(params: SignalsToolContext) {
   }
   return {
     ...customerToolsContext(params.customerId),
+    rankMentionedBenefits: {
+      customerId: params.customerId,
+      pickBenefitIds: params.pickBenefitIds,
+    },
     getSignalsAttributes: signalsContext,
     getRecentBenefitVisits: signalsContext,
     suggestNextBenefits: signalsContext,

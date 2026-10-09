@@ -1,8 +1,10 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 
+import { benefitSchedule, rankForToday } from '@/lib/benefit-days'
 import { suggestNextBenefits as rankNextBenefits } from '@/lib/benefit-recommendations'
 import { loadRecentBenefitVisits } from '@/lib/benefit-visits'
+import { merchantKey } from '@/lib/chat-mentions'
 import { type Benefit } from '@/lib/config'
 import {
   getEntitledBenefit,
@@ -51,25 +53,76 @@ export const listMyBenefits = tool({
   },
 })
 
+function withSchedule(benefit: Benefit) {
+  return { ...summarize(benefit), ...benefitSchedule(benefit) }
+}
+
+/** Exact id first; otherwise every entitled benefit of the named merchant. */
+function resolveEntitled(customerId: string, idOrMerchant: string): Benefit[] {
+  const byId = getEntitledBenefit(customerId, idOrMerchant)
+  if (byId) return [byId]
+  const key = merchantKey(idOrMerchant)
+  return getEntitledBenefits(customerId).filter(
+    (benefit) =>
+      merchantKey(benefit.merchant) === key || merchantKey(benefit.id) === key,
+  )
+}
+
 export const getBenefitDetails = tool({
   description:
-    'Devuelve el detalle y las condiciones de un beneficio SOLO si está vigente para este cliente. Usa el id devuelto por listMyBenefits (ej. turbus, shell).',
+    'Devuelve el detalle, las condiciones y los días (days, appliesToday) de un beneficio SOLO si está vigente para este cliente. Acepta el id (ej. turbus, shell) o el nombre del comercio tal como se dijo en el chat (ej. Falabella.com). appliesToday null significa que el catálogo no limita días.',
   inputSchema: z.object({
     benefitId: z
       .string()
-      .describe('Id del beneficio, por ejemplo turbus o dunkin'),
+      .describe(
+        'Id del beneficio (turbus, dunkin) o nombre del comercio (Falabella.com)',
+      ),
   }),
   contextSchema: customerContextSchema,
   execute: async ({ benefitId }, { context }) => {
-    const benefit = getEntitledBenefit(context.customerId, benefitId)
-    if (!benefit) {
+    const matches = resolveEntitled(context.customerId, benefitId)
+    if (matches.length === 0) {
       return {
         found: false,
         benefitId,
         note: 'Este beneficio no está vigente para el cliente. No lo ofrezcas.',
       }
     }
-    return { found: true, benefit: summarize(benefit) }
+    const [benefit, ...others] = matches
+    return {
+      found: true,
+      benefit: withSchedule(benefit),
+      ...(others.length > 0
+        ? { otherBenefitsAtMerchant: others.map(withSchedule) }
+        : {}),
+    }
+  },
+})
+
+export const pickContextSchema = customerContextSchema.extend({
+  pickBenefitIds: z.array(z.string()).default([]),
+})
+
+export const rankMentionedBenefits = tool({
+  description:
+    'C2: para "cuál de esos me conviene más / cuál elijo". Ordena los beneficios vigentes que nombró tu última respuesta: primero los que aplican hoy, luego sin límite de día, al final los de otro día; a igual día, el mayor descuento. Recomienda pick y cita sus razones; no cambies el orden.',
+  inputSchema: z.object({}),
+  contextSchema: pickContextSchema,
+  execute: async (_input, { context }) => {
+    const entitled = context.pickBenefitIds
+      .map((id) => getEntitledBenefit(context.customerId, id))
+      .filter((benefit): benefit is Benefit => benefit != null)
+    const ranked = rankForToday(entitled).map(({ benefit, schedule }) => ({
+      ...summarize(benefit),
+      ...schedule,
+    }))
+    if (ranked.length === 0) {
+      return {
+        found: false,
+        note: 'Tu última respuesta no nombró beneficios vigentes de este cliente. Usa listMyBenefits; no inventes.',
+      }
+    }
+    return { found: true, pick: ranked[0], ranked }
   },
 })
 
@@ -153,6 +206,7 @@ export const suggestNextMerchants = tool({
 export const benefitsTools = {
   listMyBenefits,
   getBenefitDetails,
+  rankMentionedBenefits,
   getRecentBenefitVisits,
   suggestNextBenefits,
   suggestNextMerchants,

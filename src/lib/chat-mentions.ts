@@ -45,8 +45,16 @@ function textMentions(text: string, phrase: string): boolean {
   return false
 }
 
+/** "cuál de esos me conviene más" picks among what was already said; it is not a new ask. */
+const PICK_AMONG_MENTIONED =
+  /cu[aá]l(es)? de (esos|estos|ellos|esas|estas|ellas|los|las)\b|entre (esos|estos|ellos|esas|estas|ellas)\b|cu[aá]l (elijo|escojo)|which (one )?of (those|these|them)\b|which one should i (pick|choose)/i
+
+export function isPickAmongMentioned(message: string): boolean {
+  return PICK_AMONG_MENTIONED.test(message)
+}
+
 export function isSuggestionAsk(message: string): boolean {
-  return SUGGESTION_ASK.test(message)
+  return SUGGESTION_ASK.test(message) && !isPickAmongMentioned(message)
 }
 
 /** True when this message asks for suggestions and an earlier user turn already did. */

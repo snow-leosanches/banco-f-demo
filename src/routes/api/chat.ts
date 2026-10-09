@@ -15,6 +15,7 @@ import {
   type ClientBehaviorSnapshot,
 } from '@/lib/agent-prompt'
 import {
+  isPickAmongMentioned,
   isRepeatSuggestion,
   mentionsFromHistory,
   type ChatTurn,
@@ -40,6 +41,7 @@ const TOOLS_BY_INTENT = {
   c2: [
     'listMyBenefits',
     'getBenefitDetails',
+    'rankMentionedBenefits',
     'getRecentBenefitVisits',
     'suggestNextBenefits',
     'suggestNextMerchants',
@@ -105,6 +107,12 @@ export const Route = createFileRoute('/api/chat')({
           { role: 'user', content: body.message },
         ])
         const repeatSuggestions = isRepeatSuggestion(history, body.message)
+        // "cuál de esos" points at the merchants in the last answer only.
+        const pickBenefitIds = isPickAmongMentioned(body.message)
+          ? mentionsFromHistory(
+              history.filter((turn) => turn.role === 'assistant').slice(-1),
+            ).benefitIds
+          : []
 
         const customer = body.customer ?? guestCustomer(language)
 
@@ -137,7 +145,12 @@ export const Route = createFileRoute('/api/chat')({
         let jev: JevTriage | null = null
         if (body.jevEnabled) {
           try {
-            jev = await triageQuestion(body.message, language, request.signal)
+            jev = await triageQuestion(
+              body.message,
+              history,
+              language,
+              request.signal,
+            )
           } catch (error) {
             if (request.signal.aborted) {
               return new Response(null, { status: 499 })
@@ -153,6 +166,16 @@ export const Route = createFileRoute('/api/chat')({
           ? `${buildSystemPrompt(context, language)}\n\n${jevSystemNote(jev)}`
           : buildSystemPrompt(context, language)
 
+        const activeTools = jev?.routed
+          ? TOOLS_BY_INTENT[jev.intent]
+          : undefined
+        const forcePick =
+          pickBenefitIds.length > 0 &&
+          (!activeTools ||
+            (activeTools as readonly string[]).includes(
+              'rankMentionedBenefits',
+            ))
+
         const result = streamText({
           model: 'anthropic/claude-haiku-4.5',
           system: systemPrompt,
@@ -164,7 +187,16 @@ export const Route = createFileRoute('/api/chat')({
             { role: 'user' as const, content: body.message },
           ],
           tools: agentTools,
-          activeTools: jev?.routed ? TOOLS_BY_INTENT[jev.intent] : undefined,
+          activeTools,
+          prepareStep: ({ stepNumber }) =>
+            forcePick && stepNumber === 0
+              ? {
+                  toolChoice: {
+                    type: 'tool',
+                    toolName: 'rankMentionedBenefits',
+                  },
+                }
+              : undefined,
           toolsContext: agentToolsContext({
             customerId: customer.customerId,
             domainUserId: body.domainUserId ?? null,
@@ -173,6 +205,7 @@ export const Route = createFileRoute('/api/chat')({
             mentionedBenefitIds: mentions.benefitIds,
             mentionedMerchants: mentions.merchants,
             repeatSuggestions,
+            pickBenefitIds,
           }),
           stopWhen: isStepCount(8),
           onError: ({ error }) => {
